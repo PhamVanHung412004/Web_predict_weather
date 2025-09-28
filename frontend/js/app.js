@@ -289,11 +289,70 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    async function analyzeImages() {
+        console.log('Fetching image analysis results...');
+
+        try {
+            const response = await fetch('http://127.0.0.1:5000/api/analyze_images', {
+                method: 'GET'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('Image analysis results:', result);
+
+            displayImageAnalysisResults(result.results);
+        } catch (error) {
+            console.error('Error fetching image analysis results:', error);
+            alert('Có lỗi xảy ra khi lấy kết quả phân tích ảnh. Vui lòng thử lại.');
+        }
+    }
+
+    function displayImageAnalysisResults(results) {
+        const resultsContainer = document.getElementById('resultsContainer');
+        if (!resultsContainer) {
+            console.error('Results container not found');
+            return;
+        }
+
+        resultsContainer.innerHTML = ''; // Clear previous results
+
+        results.forEach(item => {
+            const resultDiv = document.createElement('div');
+            resultDiv.classList.add('result-item');
+
+            const img = document.createElement('img');
+            img.src = `http://127.0.0.1:5000/results/${item.image}`;
+            img.alt = item.image;
+            img.classList.add('result-image');
+
+            const evaluation = document.createElement('p');
+            evaluation.textContent = `Đánh giá: ${item.analysis.evaluation}`;
+
+            resultDiv.appendChild(img);
+            resultDiv.appendChild(evaluation);
+
+            resultsContainer.appendChild(resultDiv);
+        });
+
+        const resultsSection = document.getElementById('resultsSection');
+        if (resultsSection) {
+            resultsSection.style.display = 'block';
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
     // Add event listener for image analysis
     const analyzeImageBtn = document.getElementById('analyzeImageBtn');
     if (analyzeImageBtn) {
         analyzeImageBtn.addEventListener('click', analyzeImage);
     }
+
+    // Call analyzeImages when the page loads or when needed
+    document.getElementById('analyzeImagesBtn')?.addEventListener('click', analyzeImages);
 
     // Display results
     function displayResults(data) {

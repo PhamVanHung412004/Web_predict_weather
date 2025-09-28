@@ -15,8 +15,8 @@
         <div class="container">
             <div class="header-content">
                 <div class="logo">
-                    <i class="fas fa-chart-line"></i>
-                    <h1>Phân tích chất lượng không khí từ dữ liệu khí tượng</h1>
+                    <!-- <i class="fas fa-chart-line"></i> -->
+                    <!-- <h1>Phân tích chất lượng không khí từ dữ liệu khí tượng</h1> -->
                 </div>
                 <nav class="nav">
                     <a href="#home" class="nav-link active">Trang chủ</a>
@@ -34,10 +34,6 @@
             <section class="hero" id="home">
                 <div class="hero-content">
                     <h2 class="hero-title" style="font-size: 2.5rem; font-weight: 700; color: #4CAF50; text-align: center;">Phân tích chất lượng không khí từ dữ liệu khí tượng</h2>
-                    <p class="hero-description" style="font-size: 1.2rem; color: #555; text-align: center; margin-top: 10px;">
-                        Sử dụng mô hình Random Forest đã được train trên dữ liệu thực tế 
-                        để dự đoán và phân tích chất lượng không khí từ các yếu tố khí tượng
-                    </p>
             </section>
 
             <!-- Upload Section -->
@@ -89,108 +85,6 @@
             <section class="results-section" id="resultsSection" style="display: none;">
                 <div class="results-container">
                     <h3 class="results-title">Kết quả phân tích</h3>
-                    
-                    <!-- Model Performance -->
-                    <div class="model-performance">
-                        <h4>Hiệu suất mô hình</h4>
-                        <div class="performance-cards">
-                            <div class="perf-card">
-                                <i class="fas fa-bullseye"></i>
-                                <h5>RMSE</h5>
-                                <p id="modelRMSE">--</p>
-                            </div>
-                            <div class="perf-card">
-                                <i class="fas fa-chart-line"></i>
-                                <h5>R² Score</h5>
-                                <p id="modelR2">--</p>
-                            </div>
-                            <div class="perf-card">
-                                <i class="fas fa-database"></i>
-                                <h5>Số mẫu</h5>
-                                <p id="sampleCount">--</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Statistical Analysis -->
-                    <div class="statistical-analysis">
-                        <h4>Phân tích thống kê</h4>
-                        <div class="stats-grid">
-                            <div class="stat-card">
-                                <h5>PM2.5 Trung bình</h5>
-                                <p id="avgPM25">--</p>
-                            </div>
-                            <div class="stat-card">
-                                <h5>PM2.5 Cao nhất</h5>
-                                <p id="maxPM25">--</p>
-                            </div>
-                            <div class="stat-card">
-                                <h5>PM2.5 Thấp nhất</h5>
-                                <p id="minPM25">--</p>
-                            </div>
-                            <div class="stat-card">
-                                <h5>Độ lệch chuẩn</h5>
-                                <p id="stdPM25">--</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Charts Section -->
-                    <div class="charts-section">
-                        <div class="chart-container">
-                            <h4>Biểu đồ PM2.5 theo thời gian</h4>
-                            <canvas id="timeSeriesChart"></canvas>
-                        </div>
-                        
-                        <div class="chart-container">
-                            <h4>Phân bố PM2.5</h4>
-                            <canvas id="distributionChart"></canvas>
-                        </div>
-                        
-                        <div class="chart-container">
-                            <h4>Tương quan với các yếu tố khí tượng</h4>
-                            <canvas id="correlationChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Feature Importance -->
-                    <div class="feature-importance">
-                        <h4>Tầm quan trọng của các yếu tố</h4>
-                        <div class="importance-chart">
-                            <canvas id="importanceChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- AQI Analysis -->
-                    <div class="aqi-analysis">
-                        <h4>Phân tích AQI</h4>
-                        <div class="aqi-stats">
-                            <div class="aqi-level">
-                                <div class="aqi-circle aqi-good">
-                                    <span id="aqiGoodCount">0</span>
-                                </div>
-                                <p>Tốt</p>
-                            </div>
-                            <div class="aqi-level">
-                                <div class="aqi-circle aqi-moderate">
-                                    <span id="aqiModerateCount">0</span>
-                                </div>
-                                <p>Trung bình</p>
-                            </div>
-                            <div class="aqi-level">
-                                <div class="aqi-circle aqi-unhealthy">
-                                    <span id="aqiUnhealthyCount">0</span>
-                                </div>
-                                <p>Không tốt</p>
-                            </div>
-                            <div class="aqi-level">
-                                <div class="aqi-circle aqi-very-unhealthy">
-                                    <span id="aqiVeryUnhealthyCount">0</span>
-                                </div>
-                                <p>Rất không tốt</p>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Image Results Section -->
                     <div class="image-results">

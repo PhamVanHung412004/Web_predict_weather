@@ -63,7 +63,6 @@ Truy cập: http://localhost:8000
 
 Frontend giao tiếp với backend qua các endpoint:
 
-- `POST /api/analyze` - Phân tích ảnh
 - `GET /api/health` - Kiểm tra trạng thái API
 
 ## Responsive Design

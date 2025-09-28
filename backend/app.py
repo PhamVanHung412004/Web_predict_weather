@@ -19,6 +19,21 @@ from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from PIL import Image
 import cv2
+from pathlib import Path
+import time
+
+from model_gemini import Model
+import yaml
+
+path_file_config = Path(__file__).parent.parent / "config.yaml"    
+
+with open(path_file_config, "r", encoding="utf-8") as file:
+    config = yaml.safe_load(file)
+
+model_name = config["information_model"]["model_name"]
+promt_system = config["information_model"]["prompt_system_scan_image"]
+
+
 
 warnings.filterwarnings('ignore')
 
@@ -548,53 +563,45 @@ def log_message():
 
 # Import Gemini model (placeholder for actual implementation)
 def analyze_image_with_gemini(image_path):
-    """Analyze image using Gemini model and return evaluation."""
-    # Placeholder logic for Gemini model analysis
-    return {
-        "evaluation": "This is a placeholder evaluation for the image.",
-        "confidence": 0.95
-    }
+    
+    return Model(model_name,promt_system,image_path).Call_API_Model
 
-@app.route('/api/analyze_image', methods=['POST'])
-def analyze_image():
-    """Analyze an uploaded image using the Gemini model."""
+@app.route('/api/analyze_images', methods=['GET'])
+def analyze_images():
+    """Analyze all images in the results folder using the Gemini model with a delay."""
     try:
-        # Check if an image file is present
-        if 'image_file' not in request.files:
-            return jsonify({'error': 'No image file provided'}), 400
+        results_folder = app.config['RESULTS_FOLDER']
+        if not os.path.exists(results_folder):
+            return jsonify({'error': 'Results folder does not exist'}), 400
 
-        file = request.files['image_file']
+        analysis_results = []
 
-        if file.filename == '':
-            return jsonify({'error': 'No file selected'}), 400
+        # Iterate through all image files in the results folder
+        for filename in os.listdir(results_folder):
+            file_path = os.path.join(results_folder, filename)
 
-        if not allowed_image_file(file.filename):
-            return jsonify({'error': 'Invalid file type. Please upload an image file.'}), 400
+            if allowed_image_file(filename):
+                try:
+                    # Analyze the image using the Gemini model
+                    analysis_result = analyze_image_with_gemini(file_path)
+                    analysis_results.append({
+                        'image': filename,
+                        'analysis': analysis_result
+                    })
 
-        # Save the uploaded image
-        filename = secure_filename(file.filename)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{timestamp}_{filename}"
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
-
-        # Analyze the image using the Gemini model
-        analysis_result = analyze_image_with_gemini(filepath)
-
-        # Clean up uploaded file
-        try:
-            os.remove(filepath)
-        except Exception as e:
-            logging.error(f"Error cleaning up file: {str(e)}")
+                    # Delay for 5 seconds between processing each image
+                    time.sleep(5)
+                except Exception as e:
+                    logging.error(f"Error analyzing image {filename}: {str(e)}")
 
         return jsonify({
             'success': True,
             'message': 'Image analysis completed successfully',
-            'analysis': analysis_result
+            'results': analysis_results
         })
 
     except Exception as e:
-        logging.error(f"Error in analyze_image: {str(e)}")
+        logging.error(f"Error in analyze_images: {str(e)}")
         return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
 
 if __name__ == '__main__':
