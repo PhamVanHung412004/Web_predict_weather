@@ -1,0 +1,6 @@
+flowchart TD
+  CSV[CSV input] --> Preprocess[Tiền xử lý: dropna, convert types]
+  Preprocess --> EDA[EDA: stats, hist, corr]
+  EDA --> Plots[Tạo biểu đồ: hist, heatmap, timeseries, boxplot, radar]
+  Plots --> Save[Save images -> backend/results]
+  Save --> Serve[Serve images -> frontend]
