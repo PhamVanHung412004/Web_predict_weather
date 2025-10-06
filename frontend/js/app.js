@@ -804,145 +804,92 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Hiển thị chỉ báo tiến trình
         const downloadChartsBtn = document.getElementById('downloadCharts');
         const originalText = downloadChartsBtn.innerHTML;
-        
         downloadChartsBtn.disabled = true;
         downloadChartsBtn.innerHTML = '<span class="loading-spinner"></span> Đang chuẩn bị tải xuống...';
 
-        // Tạo zip file chứa tất cả biểu đồ
         const zip = new JSZip();
         let downloadCount = 0;
         let errorCount = 0;
         const totalCharts = analysisResults.analysis_plots.length;
 
-        console.log(`Bắt đầu tải ${totalCharts} biểu đồ...`);
+        analysisResults.analysis_plots.forEach((plot) => {
+            const url = `http://127.0.0.1:5000/results/${encodeURIComponent(plot.filename)}`;
 
-        // Tải từng ảnh và thêm vào zip
-        analysisResults.analysis_plots.forEach((plot, index) => {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            
-            img.onload = function() {
-                try {
-                    // Tạo canvas để chuyển đổi ảnh thành blob
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
-                    
-                    canvas.toBlob(function(blob) {
-                        if (blob) {
-                            zip.file(plot.filename, blob);
-                            downloadCount++;
-                            
-                            // Cập nhật tiến trình
-                            const progress = Math.round((downloadCount / totalCharts) * 100);
-                            downloadChartsBtn.innerHTML = `<span class="loading-spinner"></span> Đang tải... ${progress}%`;
-                            
-                            // Khi đã tải xong tất cả ảnh
-                            if (downloadCount + errorCount === totalCharts) {
-                                downloadChartsBtn.innerHTML = '<span class="loading-spinner"></span> Đang tạo file ZIP...';
-                                
-                                zip.generateAsync({type: 'blob'}).then(function(content) {
-                                    const url = window.URL.createObjectURL(content);
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = `bieu_do_phan_tich_${new Date().toISOString().split('T')[0]}.zip`;
-                                    a.click();
-                                    window.URL.revokeObjectURL(url);
-                                    
-                                    // Khôi phục trạng thái button
-                                    downloadChartsBtn.disabled = false;
-                                    downloadChartsBtn.innerHTML = originalText;
-                                    
-                                    if (errorCount > 0) {
-                                        alert(`Đã tải xuống ${downloadCount} biểu đồ thành công. ${errorCount} biểu đồ gặp lỗi.`);
-                                    } else {
-                                        alert(`Đã tải xuống thành công ${downloadCount} biểu đồ!`);
-                                    }
-                                }).catch(function(error) {
-                                    console.error('Lỗi tạo file ZIP:', error);
-                                    downloadChartsBtn.disabled = false;
-                                    downloadChartsBtn.innerHTML = originalText;
-                                    alert('Có lỗi xảy ra khi tạo file ZIP. Vui lòng thử lại.');
-                                });
+            fetch(url, { mode: 'cors' })
+                .then(resp => {
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    return resp.blob();
+                })
+                .then(blob => {
+                    zip.file(plot.filename, blob);
+                    downloadCount++;
+                    const progress = Math.round((downloadCount / totalCharts) * 100);
+                    downloadChartsBtn.innerHTML = `<span class="loading-spinner"></span> Đang tải... ${progress}%`;
+
+                    if (downloadCount + errorCount === totalCharts) {
+                        downloadChartsBtn.innerHTML = '<span class="loading-spinner"></span> Đang tạo file ZIP...';
+                        zip.generateAsync({ type: 'blob' }).then(content => {
+                            const blobUrl = window.URL.createObjectURL(content);
+                            const a = document.createElement('a');
+                            a.href = blobUrl;
+                            a.download = `bieu_do_phan_tich_${new Date().toISOString().split('T')[0]}.zip`;
+                            a.click();
+                            window.URL.revokeObjectURL(blobUrl);
+
+                            downloadChartsBtn.disabled = false;
+                            downloadChartsBtn.innerHTML = originalText;
+
+                            if (errorCount > 0) {
+                                alert(`Đã tải xuống ${downloadCount} biểu đồ thành công. ${errorCount} biểu đồ gặp lỗi.`);
+                            } else {
+                                alert(`Đã tải xuống thành công ${downloadCount} biểu đồ!`);
                             }
-                        } else {
-                            console.error(`Không thể tạo blob cho ảnh: ${plot.filename}`);
-                            errorCount++;
-                        }
-                    }, 'image/png');
-                } catch (error) {
-                    console.error(`Lỗi xử lý ảnh ${plot.filename}:`, error);
+                        }).catch(err => {
+                            console.error('ZIP error:', err);
+                            downloadChartsBtn.disabled = false;
+                            downloadChartsBtn.innerHTML = originalText;
+                            alert('Có lỗi xảy ra khi tạo file ZIP. Vui lòng thử lại.');
+                        });
+                    }
+                })
+                .catch(err => {
+                    console.error('Fetch image error:', err, url);
                     errorCount++;
                     if (downloadCount + errorCount === totalCharts) {
                         downloadChartsBtn.disabled = false;
                         downloadChartsBtn.innerHTML = originalText;
-                        alert('Có lỗi xảy ra khi tải biểu đồ. Vui lòng thử lại.');
+                        if (errorCount === totalCharts) {
+                            alert('Không thể tải xuống bất kỳ biểu đồ nào. Vui lòng kiểm tra backend và thử lại.');
+                        } else {
+                            alert(`Đã tải xuống ${downloadCount} biểu đồ thành công. ${errorCount} biểu đồ gặp lỗi.`);
+                        }
                     }
-                }
-            };
-            
-            img.onerror = function() {
-                console.error(`Lỗi tải ảnh: ${plot.filename}`);
-                errorCount++;
-                
-                if (downloadCount + errorCount === totalCharts) {
-                    downloadChartsBtn.disabled = false;
-                    downloadChartsBtn.innerHTML = originalText;
-                    
-                    if (errorCount === totalCharts) {
-                        alert('Không thể tải xuống bất kỳ biểu đồ nào. Vui lòng kiểm tra kết nối mạng và thử lại.');
-                    } else {
-                        alert(`Đã tải xuống ${downloadCount} biểu đồ thành công. ${errorCount} biểu đồ gặp lỗi.`);
-                    }
-                }
-            };
-            
-            // Sử dụng URL localhost thay vì ngrok
-            img.src = `http://127.0.0.1:5000/results/${plot.filename}`;
+                });
         });
     }
 
-    // Hàm tải từng biểu đồ riêng lẻ
+    // Updated single chart download to use fetch -> blob
     function downloadSingleChart(plot) {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        
-        img.onload = function() {
-            try {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
-                
-                canvas.toBlob(function(blob) {
-                    if (blob) {
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = plot.filename;
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                    } else {
-                        alert('Không thể tải xuống biểu đồ này.');
-                    }
-                }, 'image/png');
-            } catch (error) {
-                console.error('Lỗi tải biểu đồ:', error);
-                alert('Có lỗi xảy ra khi tải xuống biểu đồ.');
-            }
-        };
-        
-        img.onerror = function() {
-            alert('Không thể tải xuống biểu đồ. Vui lòng thử lại.');
-        };
-        
-        img.src = `http://127.0.0.1:5000/results/${plot.filename}`;
+        const url = `http://127.0.0.1:5000/results/${encodeURIComponent(plot.filename)}`;
+        fetch(url, { mode: 'cors' })
+            .then(resp => {
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                return resp.blob();
+            })
+            .then(blob => {
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = plot.filename;
+                a.click();
+                window.URL.revokeObjectURL(blobUrl);
+            })
+            .catch(err => {
+                console.error('Error downloading single chart:', err);
+                alert('Không thể tải xuống biểu đồ. Vui lòng thử lại.');
+            });
     }
 
     // Smooth scrolling for navigation

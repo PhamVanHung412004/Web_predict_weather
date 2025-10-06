@@ -273,8 +273,8 @@ def generate_comprehensive_plots(df, timestamp):
     try:
         # 1. Biểu đồ phân phối các chỉ số ô nhiễm
         if len(numeric_df.columns) >= 4:
-            fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-            fig.suptitle('Phân phối các chỉ số ô nhiễm không khí', fontsize=16, y=0.98)
+            fig, axes = plt.subplots(2, 2, figsize=(20, 15))
+            fig.suptitle('Phân phối các chỉ số ô nhiễm không khí', fontsize=20, y=0.98)
             
             for i, col in enumerate(numeric_df.columns[:4]):
                 row, col_idx = i // 2, i % 2
@@ -295,7 +295,7 @@ def generate_comprehensive_plots(df, timestamp):
         
         # 2. Ma trận tương quan (đầy đủ)
         if len(numeric_df.columns) > 1:
-            plt.figure(figsize=(12, 8))
+            plt.figure(figsize=(16, 12))
             corr_matrix = numeric_df.corr()
             
             # Đổi tên columns sang tiếng Việt
@@ -315,7 +315,7 @@ def generate_comprehensive_plots(df, timestamp):
         
         # 3. Biểu đồ xu hướng thời gian
         if len(numeric_df) > 10:
-            plt.figure(figsize=(14, 8))
+            plt.figure(figsize=(18, 12))
             sample_size = min(100, len(numeric_df))
             x_values = range(sample_size)
             
@@ -338,7 +338,7 @@ def generate_comprehensive_plots(df, timestamp):
         
         # 4. Biểu đồ hộp (Box plot) để phát hiện giá trị bất thường
         if len(numeric_df.columns) >= 3:
-            plt.figure(figsize=(12, 6))
+            plt.figure(figsize=(16, 10))
             box_data = []
             labels = []
             
@@ -376,7 +376,7 @@ def generate_comprehensive_plots(df, timestamp):
                 level, _ = classify_aqi_level(val)
                 aqi_categories[level] += 1
             
-            plt.figure(figsize=(10, 6))
+            plt.figure(figsize=(14, 10))
             categories = list(aqi_categories.keys())
             values = list(aqi_categories.values())
             
@@ -389,7 +389,7 @@ def generate_comprehensive_plots(df, timestamp):
         
         # 6. Biểu đồ so sánh các chỉ số (Radar Chart)
         if len(numeric_df.columns) >= 3:
-            fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(projection='polar'))
+            fig, ax = plt.subplots(figsize=(12, 12), subplot_kw=dict(projection='polar'))
             
             # Chuẩn hóa dữ liệu để vẽ radar chart
             sample_data = numeric_df.iloc[:min(3, len(numeric_df))]  # Lấy 3 mẫu đầu
@@ -456,7 +456,15 @@ def analyze_csv():
         # Clear results and uploads folders before processing new file
         for folder in [app.config['RESULTS_FOLDER'], app.config['UPLOAD_FOLDER']]:
             if os.path.exists(folder):
-                shutil.rmtree(folder)
+                # Xóa các file trong thư mục thay vì xóa thư mục
+                for filename in os.listdir(folder):
+                    file_path = os.path.join(folder, filename)
+                    try:
+                        if os.path.isfile(file_path):
+                            os.unlink(file_path)
+                    except Exception as e:
+                        logger.error(f'Lỗi khi xóa file {file_path}: {e}')
+            else:
                 os.makedirs(folder)
 
         # Check if file is present
@@ -555,10 +563,44 @@ def resize_image_with_opencv(image_path, max_width=1000):
 
 @app.route('/results/<filename>')
 def serve_image(filename):
-    """Serve resized images from the results folder."""
-    original_path = os.path.join(app.config['RESULTS_FOLDER'], filename)
-    resize_image_with_opencv(original_path)
-    return send_from_directory(app.config['RESULTS_FOLDER'], filename)
+    """Serve images from the results folder with CORS headers so the frontend can load them into a canvas."""
+    try:
+        results_dir = app.config['RESULTS_FOLDER']
+        if not os.path.exists(results_dir):
+            os.makedirs(results_dir)
+
+        file_path = os.path.join(results_dir, filename)
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'File không tồn tại'}), 404
+
+        # Use send_from_directory to serve file, then add CORS headers so the frontend
+        # can safely draw the image onto a canvas (crossOrigin='anonymous').
+        response = send_from_directory(results_dir, filename, as_attachment=False)
+
+        # Infer mime type from extension (default to png)
+        ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'png'
+        if ext in ('jpg', 'jpeg'):
+            response.mimetype = 'image/jpeg'
+        elif ext == 'gif':
+            response.mimetype = 'image/gif'
+        else:
+            response.mimetype = 'image/png'
+
+        # Prevent caching so frontend always gets the latest image
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+
+        # Allow cross-origin requests for images so canvas isn't tainted
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+
+        return response
+
+    except Exception as e:
+        logger.error(f'Lỗi khi tải file {filename}: {str(e)}')
+        return jsonify({'error': 'Lỗi khi tải file', 'details': str(e)}), 500
 
 @app.route('/api/health')
 def health_check():
