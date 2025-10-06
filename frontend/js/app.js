@@ -289,25 +289,134 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    async function analyzeImages() {
-        console.log('Fetching image analysis results...');
+    async function checkAnalysisStatus() {
+        console.log('Checking image analysis status...');
 
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/analyze_images', {
-                method: 'GET'
+            const response = await fetch('http://127.0.0.1:5000/api/analyze_images/status', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                mode: 'cors'
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            console.log('Analysis status:', result);
+
+            // Show status information
+            const status = result.status;
+            let statusMessage = `📊 Trạng thái phân tích ảnh:\n\n`;
+            statusMessage += `📁 Thư mục kết quả: ${status.results_folder_exists ? '✅ Tồn tại' : '❌ Không tồn tại'}\n`;
+            statusMessage += `🖼️ Số ảnh: ${status.image_count}\n`;
+            statusMessage += `🔑 API Key: ${status.api_key_configured ? '✅ Đã cấu hình' : '❌ Chưa cấu hình'}\n`;
+            statusMessage += `📋 Định dạng hỗ trợ: ${status.supported_formats.join(', ')}\n\n`;
+            
+            if (!status.results_folder_exists) {
+                statusMessage += `⚠️ Cảnh báo: Thư mục kết quả không tồn tại!\n`;
+            }
+            if (!status.api_key_configured) {
+                statusMessage += `⚠️ Cảnh báo: API key chưa được cấu hình. Sẽ sử dụng phân tích mẫu.\n`;
+            }
+            if (status.image_count === 0) {
+                statusMessage += `⚠️ Cảnh báo: Không có ảnh nào để phân tích!\n`;
+            }
+
+            alert(statusMessage);
+            
+        } catch (error) {
+            console.error('Error checking analysis status:', error);
+            
+            let errorMessage = 'Có lỗi xảy ra khi kiểm tra trạng thái phân tích ảnh:\n\n';
+            
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                errorMessage += '❌ Không thể kết nối đến backend server\n';
+                errorMessage += '🔧 Kiểm tra:\n';
+                errorMessage += '• Backend có đang chạy trên port 5000?\n';
+                errorMessage += '• Có lỗi CORS không?\n';
+                errorMessage += '• Firewall có block kết nối không?\n\n';
+                errorMessage += '💡 Thử khởi động lại backend server';
+            } else {
+                errorMessage += `❌ ${error.message}`;
+            }
+            
+            alert(errorMessage);
+        }
+    }
+
+    async function analyzeImages() {
+        console.log('Starting image analysis...');
+
+        // Show loading state
+        const analyzeImagesBtn = document.getElementById('analyzeImagesBtn');
+        const originalText = analyzeImagesBtn ? analyzeImagesBtn.innerHTML : '';
+        
+        if (analyzeImagesBtn) {
+            analyzeImagesBtn.disabled = true;
+            analyzeImagesBtn.innerHTML = '<span class="loading-spinner"></span> Đang phân tích ảnh...';
+        }
+
+        try {
+            const response = await fetch('http://127.0.0.1:5000/api/analyze_images', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                mode: 'cors'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}. ${errorData.details || ''}`);
             }
 
             const result = await response.json();
             console.log('Image analysis results:', result);
 
-            displayImageAnalysisResults(result.results);
+            if (result.success) {
+                displayImageAnalysisResults(result.results);
+                
+                // Show success message with statistics
+                let message = result.message;
+                if (result.total_images !== undefined) {
+                    message += `\n\n📊 Thống kê:\n`;
+                    message += `• Tổng số ảnh: ${result.total_images}\n`;
+                    message += `• Phân tích thành công: ${result.successful_analysis}\n`;
+                    if (result.errors > 0) {
+                        message += `• Gặp lỗi: ${result.errors}`;
+                    }
+                }
+                alert(message);
+            } else {
+                throw new Error(result.message || 'Phân tích ảnh thất bại');
+            }
         } catch (error) {
             console.error('Error fetching image analysis results:', error);
-            alert('Có lỗi xảy ra khi lấy kết quả phân tích ảnh. Vui lòng thử lại.');
+            
+            let errorMessage = 'Có lỗi xảy ra khi phân tích ảnh:\n\n';
+            
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                errorMessage += '❌ Không thể kết nối đến backend server\n';
+                errorMessage += '🔧 Kiểm tra:\n';
+                errorMessage += '• Backend có đang chạy trên port 5000?\n';
+                errorMessage += '• Có lỗi CORS không?\n';
+                errorMessage += '• Firewall có block kết nối không?\n\n';
+                errorMessage += '💡 Thử khởi động lại backend server';
+            } else {
+                errorMessage += `❌ ${error.message}`;
+            }
+            
+            alert(errorMessage);
+        } finally {
+            // Restore button state
+            if (analyzeImagesBtn) {
+                analyzeImagesBtn.disabled = false;
+                analyzeImagesBtn.innerHTML = originalText;
+            }
         }
     }
 
@@ -351,8 +460,63 @@ document.addEventListener('DOMContentLoaded', function() {
         analyzeImageBtn.addEventListener('click', analyzeImage);
     }
 
-    // Call analyzeImages when the page loads or when needed
-    document.getElementById('analyzeImagesBtn')?.addEventListener('click', analyzeImages);
+    // Test connection function
+    async function testConnection() {
+        console.log('Testing backend connection...');
+        
+        try {
+            const response = await fetch('http://127.0.0.1:5000/api/test', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                mode: 'cors'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            console.log('Connection test result:', result);
+            
+            if (result.success) {
+                alert(`✅ Kết nối backend thành công!\n\n📡 Backend đang chạy\n🕐 Thời gian: ${result.timestamp}\n📦 Phiên bản: ${result.version}`);
+                return true;
+            } else {
+                throw new Error('Backend trả về lỗi');
+            }
+        } catch (error) {
+            console.error('Connection test failed:', error);
+            
+            let errorMessage = '❌ Không thể kết nối đến backend:\n\n';
+            
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                errorMessage += '🔧 Các bước khắc phục:\n\n';
+                errorMessage += '1. Kiểm tra backend có đang chạy:\n';
+                errorMessage += '   cd backend && python app.py\n\n';
+                errorMessage += '2. Kiểm tra port 5000 có bị block:\n';
+                errorMessage += '   netstat -tlnp | grep :5000\n\n';
+                errorMessage += '3. Thử khởi động lại backend\n\n';
+                errorMessage += '4. Kiểm tra firewall/antivirus';
+            } else {
+                errorMessage += `❌ ${error.message}`;
+            }
+            
+            alert(errorMessage);
+            return false;
+        }
+    }
+
+    // Add event listeners for image analysis buttons
+    document.getElementById('analyzeImagesBtn')?.addEventListener('click', async () => {
+        // Test connection first
+        const isConnected = await testConnection();
+        if (isConnected) {
+            analyzeImages();
+        }
+    });
+    document.getElementById('checkStatusBtn')?.addEventListener('click', checkAnalysisStatus);
 
     // Display results
     function displayResults(data) {

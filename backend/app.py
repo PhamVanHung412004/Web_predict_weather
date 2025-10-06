@@ -9,6 +9,8 @@ import logging
 from werkzeug.utils import secure_filename
 import joblib
 import warnings
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import seaborn as sns
 import shutil
@@ -21,6 +23,8 @@ from PIL import Image
 import cv2
 from pathlib import Path
 import time
+import atexit
+import signal
 
 from model_gemini import Model
 import yaml
@@ -37,13 +41,26 @@ promt_system = config["information_model"]["prompt_system_scan_image"]
 
 warnings.filterwarnings('ignore')
 
-# Cấu hình font tiếng Việt cho matplotlib
+# Cấu hình matplotlib cho môi trường server
 plt.rcParams['font.family'] = ['DejaVu Sans', 'Liberation Sans', 'Arial Unicode MS']
 plt.rcParams['axes.unicode_minus'] = False
+plt.rcParams['figure.max_open_warning'] = 0  # Tắt cảnh báo về số figure mở
+plt.ioff()  # Tắt interactive mode
+
+def cleanup_matplotlib():
+    """Cleanup matplotlib figures to prevent memory leaks."""
+    plt.close('all')  # Đóng tất cả figures
+    matplotlib.pyplot.clf()  # Clear current figure
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:3000", "http://127.0.0.1:3000"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 # Configuration
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
@@ -58,6 +75,11 @@ os.makedirs(app.config['RESULTS_FOLDER'], exist_ok=True)
 ALLOWED_EXTENSIONS = {'csv'}
 # Add allowed extensions for images
 ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+def allowed_image_file(filename):
+    """Check if the file has an allowed image extension."""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -413,6 +435,9 @@ def generate_comprehensive_plots(df, timestamp):
     except Exception as e:
         logger.error(f"Lỗi khi tạo biểu đồ: {str(e)}")
         return plot_paths
+    finally:
+        # Cleanup matplotlib figures
+        cleanup_matplotlib()
 
 @app.route('/')
 def index():
@@ -482,7 +507,7 @@ def analyze_csv():
                 {
                     'filename': os.path.basename(path),
                     'title': get_plot_title(os.path.basename(path)),
-                    'url': f"/results/{os.path.basename(path)}",
+                    'url': f"http://127.0.0.1:5000/results/{os.path.basename(path)}",
                     'evaluation': f"Đánh giá cho biểu đồ {get_plot_title(os.path.basename(path))}"
                 } for path in plot_paths
             ],
@@ -563,47 +588,194 @@ def log_message():
 
 # Import Gemini model (placeholder for actual implementation)
 def analyze_image_with_gemini(image_path):
-    
-    return Model(model_name,promt_system,image_path).Call_API_Model
+    """Analyze image using Gemini model."""
+    try:
+        logger.info(f"Analyzing image: {image_path}")
+        
+        # Check if API key is configured
+        api_key = os.getenv("YOUR_API_KEY")
+        if not api_key or api_key == "your_gemini_api_key_here":
+            logger.warning("Gemini API key not configured. Using mock analysis.")
+            return {
+                'evaluation': f'Đây là phân tích mẫu cho ảnh {os.path.basename(image_path)}. Để sử dụng phân tích thực tế, vui lòng cấu hình Gemini API key trong file .env',
+                'confidence': 0.5
+            }
+        
+        result = Model(model_name, promt_system, image_path).Call_API_Model
+        
+        # Parse the result if it's a JSON string
+        if isinstance(result, str):
+            try:
+                # Try to parse as JSON
+                parsed_result = json.loads(result)
+                return parsed_result
+            except json.JSONDecodeError:
+                # If not JSON, return as evaluation text
+                return {
+                    'evaluation': result,
+                    'confidence': 0.8
+                }
+        return result
+    except Exception as e:
+        logger.error(f"Error analyzing image {image_path}: {str(e)}")
+        return {
+            'evaluation': f'Không thể phân tích ảnh: {str(e)}',
+            'confidence': 0.0
+        }
+
+@app.route('/api/test', methods=['GET'])
+def test_connection():
+    """Test endpoint to check if backend is accessible."""
+    return jsonify({
+        'success': True,
+        'message': 'Backend is running and accessible',
+        'timestamp': datetime.now().isoformat(),
+        'version': '1.0.0'
+    })
+
+@app.route('/api/analyze_images/status', methods=['GET'])
+def analyze_images_status():
+    """Check the status of image analysis service."""
+    try:
+        results_folder = app.config['RESULTS_FOLDER']
+        api_key = os.getenv("YOUR_API_KEY")
+        
+        # Check if results folder exists
+        folder_exists = os.path.exists(results_folder)
+        
+        # Count image files
+        image_count = 0
+        if folder_exists:
+            image_files = [f for f in os.listdir(results_folder) if allowed_image_file(f)]
+            image_count = len(image_files)
+        
+        # Check API key status
+        api_key_configured = bool(api_key and api_key != "your_gemini_api_key_here")
+        
+        return jsonify({
+            'success': True,
+            'status': {
+                'results_folder_exists': folder_exists,
+                'results_folder_path': results_folder,
+                'image_count': image_count,
+                'api_key_configured': api_key_configured,
+                'supported_formats': list(ALLOWED_IMAGE_EXTENSIONS)
+            },
+            'message': 'Image analysis service status retrieved successfully'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error checking analyze_images status: {str(e)}")
+        return jsonify({
+            'error': 'Internal server error', 
+            'details': str(e)
+        }), 500
 
 @app.route('/api/analyze_images', methods=['GET'])
 def analyze_images():
     """Analyze all images in the results folder using the Gemini model with a delay."""
     try:
+        logger.info("Starting image analysis...")
         results_folder = app.config['RESULTS_FOLDER']
+        
         if not os.path.exists(results_folder):
-            return jsonify({'error': 'Results folder does not exist'}), 400
+            logger.error(f"Results folder does not exist: {results_folder}")
+            return jsonify({'error': 'Results folder does not exist', 'folder': results_folder}), 400
 
+        # Get all image files
+        image_files = [f for f in os.listdir(results_folder) if allowed_image_file(f)]
+        
+        if not image_files:
+            logger.warning("No image files found in results folder")
+            return jsonify({
+                'success': True,
+                'message': 'No image files found in results folder',
+                'results': []
+            })
+
+        logger.info(f"Found {len(image_files)} image files to analyze")
         analysis_results = []
+        error_count = 0
 
         # Iterate through all image files in the results folder
-        for filename in os.listdir(results_folder):
+        for i, filename in enumerate(image_files, 1):
             file_path = os.path.join(results_folder, filename)
+            logger.info(f"Processing image {i}/{len(image_files)}: {filename}")
 
-            if allowed_image_file(filename):
-                try:
-                    # Analyze the image using the Gemini model
-                    analysis_result = analyze_image_with_gemini(file_path)
-                    analysis_results.append({
-                        'image': filename,
-                        'analysis': analysis_result
-                    })
+            try:
+                # Analyze the image using the Gemini model
+                analysis_result = analyze_image_with_gemini(file_path)
+                
+                analysis_results.append({
+                    'image': filename,
+                    'analysis': analysis_result
+                })
+                
+                logger.info(f"Successfully analyzed: {filename}")
+                
+                # Delay for 2 seconds between processing each image (reduced from 5)
+                if i < len(image_files):  # Don't delay after the last image
+                    time.sleep(2)
+                    
+            except Exception as e:
+                error_count += 1
+                logger.error(f"Error analyzing image {filename}: {str(e)}")
+                
+                # Add error result for this image
+                analysis_results.append({
+                    'image': filename,
+                    'analysis': {
+                        'evaluation': f'Lỗi phân tích: {str(e)}',
+                        'confidence': 0.0
+                    }
+                })
 
-                    # Delay for 5 seconds between processing each image
-                    time.sleep(5)
-                except Exception as e:
-                    logging.error(f"Error analyzing image {filename}: {str(e)}")
+        success_message = f'Phân tích hoàn thành: {len(image_files) - error_count}/{len(image_files)} ảnh thành công'
+        if error_count > 0:
+            success_message += f', {error_count} ảnh gặp lỗi'
 
         return jsonify({
             'success': True,
-            'message': 'Image analysis completed successfully',
+            'message': success_message,
+            'total_images': len(image_files),
+            'successful_analysis': len(image_files) - error_count,
+            'errors': error_count,
             'results': analysis_results
         })
 
     except Exception as e:
-        logging.error(f"Error in analyze_images: {str(e)}")
-        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+        logger.error(f"Error in analyze_images: {str(e)}")
+        return jsonify({
+            'error': 'Internal server error', 
+            'details': str(e),
+            'message': 'Có lỗi xảy ra khi phân tích ảnh'
+        }), 500
+
+# Cleanup function for app shutdown
+def cleanup_on_exit():
+    """Cleanup matplotlib on app exit."""
+    try:
+        cleanup_matplotlib()
+        logger.info("Matplotlib cleanup completed on exit")
+    except Exception as e:
+        logger.error(f"Error during matplotlib cleanup: {str(e)}")
+
+# Register cleanup function
+atexit.register(cleanup_on_exit)
+
+# Signal handlers for graceful shutdown
+def signal_handler(signum, frame):
+    """Handle shutdown signals gracefully."""
+    logger.info(f"Received signal {signum}, cleaning up...")
+    cleanup_on_exit()
+    exit(0)
+
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
 
 if __name__ == '__main__':
+    logger.info("Starting Flask application...")
+    logger.info("Matplotlib backend configured as 'Agg' (non-interactive)")
+    
     # Run the app
     app.run(debug=True, host='0.0.0.0', port=5000)
