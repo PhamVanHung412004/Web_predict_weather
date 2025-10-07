@@ -1,0 +1,229 @@
+import axios from 'axios'
+import { useEffect, useState, useRef } from 'react'
+import { ChartBarIcon, SparklesIcon, XMarkIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+
+export default function AnalysisResults({ data, polling=false, setPolling }){
+  const [selectedImage, setSelectedImage] = useState(null) // { filename, title }
+  const [images, setImages] = useState([]) // { filename, title }
+  const [lastFetch, setLastFetch] = useState(null)
+  const endRef = useRef(null)
+  const sseRef = useRef(null)
+
+  useEffect(()=>{
+    const onKey = (e) => {
+      if(e.key === 'Escape') setSelectedImage(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return ()=> window.removeEventListener('keydown', onKey)
+  },[])
+
+
+  const openModal = (file) => setSelectedImage(file)
+  const closeModal = () => setSelectedImage(null)
+
+  // Polling for new images when polling flag is true
+  useEffect(()=>{
+    let timer = null
+    let isMounted = true
+
+    const fetchList = async ()=>{
+      try{
+        const res = await axios.get('/api/results/list', { timeout: 5000 })
+        if(!isMounted) return
+        if(res.data && res.data.images){
+          setLastFetch(Date.now())
+          // append new images preserving order
+          setImages(prev=>{
+            const exist = new Set(prev.map(i=>i.filename))
+            const combined = [...prev]
+            res.data.images.forEach(img=>{
+              if(!exist.has(img.filename)) combined.push(img)
+            })
+            return combined
+          })
+        }
+      }catch(e){
+        // ignore temporary errors
+      }
+    }
+
+    if(polling){
+      // clear previous images when a fresh polling session starts
+      setImages([])
+      // initial fetch
+      fetchList()
+      timer = setInterval(fetchList, 2000)
+    }
+
+    return ()=>{ isMounted=false; if(timer) clearInterval(timer) }
+  },[polling])
+
+  // Subscribe SSE for per-image Gemini analysis updates
+  useEffect(()=>{
+    console.log('AnalysisResults useEffect triggered, polling:', polling)
+    if(!polling){
+      // stop previous SSE if any
+      if(sseRef.current){ 
+        console.log('Stopping previous SSE connection')
+        sseRef.current.close(); sseRef.current = null 
+      }
+      return
+    }
+    // close previous
+    if(sseRef.current){ 
+      console.log('Closing previous SSE connection')
+      sseRef.current.close(); sseRef.current = null 
+    }
+
+    // Open SSE via Next.js proxy
+    console.log('Opening new SSE connection to /api/analyze_images_stream')
+    const es = new EventSource('/api/analyze_images_stream')
+    sseRef.current = es
+
+    es.addEventListener('progress', (evt)=>{
+      console.log('SSE progress event received:', evt.data)
+      try{
+        const payload = JSON.parse(evt.data)
+        console.log('Parsed SSE payload:', payload)
+        if(!payload?.image) return
+        // merge analysis into images by filename
+        setImages(prev=>{
+          const found = prev.find(i=>i.filename === payload.image)
+          if(found){
+            console.log('Updating existing image analysis:', payload.image)
+            return prev.map(i=> i.filename === payload.image ? { ...i, title: i.title || payload.title, analysis: payload.analysis || i.analysis } : i)
+          }
+          // if image chưa có trong list (trường hợp user mở chỉ SSE), thêm vào
+          console.log('Adding new image analysis:', payload.image)
+          const appended = { filename: payload.image, title: payload.title, analysis: payload.analysis || null }
+          return [...prev, appended]
+        })
+      }catch(e){
+        console.error('Error parsing SSE progress data:', e)
+      }
+    })
+
+    es.addEventListener('done', ()=>{
+      console.log('SSE done event received')
+      // auto-close when done
+      es.close()
+      sseRef.current = null
+    })
+
+    es.onerror = (error)=>{
+      console.error('SSE connection error:', error)
+      // best-effort: close on error to avoid leak
+      try{ es.close() }catch{}
+      sseRef.current = null
+    }
+
+    es.onopen = ()=>{
+      console.log('SSE connection opened successfully')
+    }
+
+    return ()=>{ try{ es.close() }catch{} sseRef.current = null }
+  },[polling])
+
+  // Auto-scroll to newest image when images array grows
+  useEffect(()=>{
+    if(endRef.current){
+      endRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    }
+  },[images.length])
+
+  // when data arrives (final analysis response), merge any plots into images list as well
+  useEffect(()=>{
+    if(data?.analysis_plots){
+      setImages(prev=>{
+        const exist = new Set(prev.map(i=>i.filename))
+        const combined = [...prev]
+        data.analysis_plots.forEach(p=>{ if(!exist.has(p.filename)) combined.push({ filename: p.filename, title: p.title }) })
+        return combined
+      })
+    }
+  },[data])
+
+  return (
+    <div className="bg-white/3 border border-white/5 rounded-xl p-6 mt-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">Kết quả phân tích</h3>
+          <div className="text-sm text-slate-400 mt-1">Số mẫu: <strong className="text-slate-100">{data?.sample_count ?? '—'}</strong> • Features số: <strong className="text-slate-100">{data?.feature_count ?? '—'}</strong></div>
+        </div>
+        <div className="flex gap-3">
+          <div className="text-sm text-slate-400">{data?.timestamp ? new Date(data.timestamp).toLocaleString() : ''}</div>
+        </div>
+      </div>
+
+      
+
+      <div className="mt-4">
+        <h4 className="font-medium text-sm text-slate-200 flex items-center gap-2"><SparklesIcon className="w-4 h-4 text-accent"/>Tóm tắt thống kê</h4>
+          <div className="text-sm text-slate-300 mt-2 max-h-56 overflow-auto p-2 bg-black/20 rounded-md">
+          <pre className="whitespace-pre-wrap text-xs">{JSON.stringify(data?.statistical_analysis?.summary || data?.statistical_analysis || {}, null, 2)}</pre>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-medium text-sm text-slate-200 flex items-center gap-2"><ChartBarIcon className="w-4 h-4 text-accent"/>Biểu đồ</h4>
+          {images.length > 0 && !images.some(img => img.analysis) && (
+            <button 
+              onClick={() => {
+                console.log('Manual SSE trigger clicked')
+                setPolling(true)
+              }}
+              className="bg-accent text-[#021124] px-3 py-1 rounded text-sm font-medium"
+            >
+              Phân tích Gemini AI
+            </button>
+          )}
+        </div>
+        <div className="flex flex-col gap-6 mt-4">
+          {images && images.length>0 ? (
+            images.map((p)=> (
+              <div key={p.filename} className="w-full">
+                <img src={`/api/results/${p.filename}`} alt={p.title} className="w-full h-[520px] object-contain rounded-md border border-white/5" />
+                <div className="text-sm text-slate-300 mt-2">{p.title}</div>
+                {/* Gemini AI analysis (if available) */}
+                <div className="mt-2 p-3 bg-black/20 rounded text-sm text-slate-300">
+                  {p.analysis ? (
+                    <>
+                      <div className="font-medium text-slate-100">Gemini AI đánh giá</div>
+                      <div className="mt-1 whitespace-pre-wrap">{p.analysis.evaluation}</div>
+                      {typeof p.analysis.confidence !== 'undefined' && (
+                        <div className="text-xs text-slate-400 mt-2">Độ tin cậy: {(p.analysis.confidence * 100).toFixed(1)}%</div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-slate-400">Đang chờ phân tích bởi Gemini AI...</div>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : <div className="text-sm text-slate-400">Không có biểu đồ để hiển thị</div>}
+          <div ref={endRef} />
+        </div>
+      </div>
+
+      {/* Modal / Lightbox */}
+      {selectedImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6" onClick={(e)=>{ if(e.target === e.currentTarget) closeModal() }}>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div className="relative max-w-6xl w-full z-10">
+            <div className="flex items-start justify-end gap-2 mb-3">
+              <a href={`/api/results/${selectedImage.filename}`} download className="inline-flex items-center gap-2 bg-white/6 text-slate-100 px-3 py-2 rounded-md hover:bg-white/10"><ArrowDownTrayIcon className="w-5 h-5"/>Tải về</a>
+              <button onClick={closeModal} className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-white/6 hover:bg-white/10"><XMarkIcon className="w-5 h-5 text-slate-100"/></button>
+            </div>
+
+            <div className="bg-transparent p-4 rounded">
+              <img src={`/api/results/${selectedImage.filename}`} alt={selectedImage.title} className="w-full max-h-[80vh] object-contain rounded-md mx-auto" />
+              <div className="text-sm text-slate-300 mt-3 text-center">{selectedImage.title}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  )
+}

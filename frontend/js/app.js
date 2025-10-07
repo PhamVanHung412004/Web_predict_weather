@@ -98,6 +98,12 @@ document.addEventListener('DOMContentLoaded', function() {
         downloadChartsBtn.addEventListener('click', downloadCharts);
     }
 
+    // Bind event for analyzeImagesBtn (Image analysis)
+    const analyzeImagesBtn = document.getElementById('analyzeImagesBtn');
+    if (analyzeImagesBtn) {
+        analyzeImagesBtn.addEventListener('click', analyzeImages);
+    }
+
     function handleFile(file) {
         console.log('File selected:', file.name);
         
@@ -360,14 +366,52 @@ document.addEventListener('DOMContentLoaded', function() {
             analyzeImagesBtn.innerHTML = '<span class="loading-spinner"></span> Đang phân tích ảnh...';
         }
 
+        // Clear existing results
+        const resultsContainer = document.getElementById('resultsContainer');
+        if (resultsContainer) {
+            resultsContainer.innerHTML = '';
+        }
+
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/analyze_images', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                mode: 'cors'
-            });
+            const eventSource = new EventSource('http://127.0.0.1:5000/api/analyze_image_stream');
+            
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                console.log('Received update:', data);
+
+                // Update progress for all event types
+                if (data.progress && analyzeImagesBtn) {
+                    const progress = Math.round((data.progress.current / data.progress.total) * 100);
+                    analyzeImagesBtn.innerHTML = `<span class="loading-spinner"></span> Đang phân tích ảnh... ${progress}%`;
+                }
+
+                if (data.type === 'start_analysis') {
+                    console.log('Starting analysis for:', data.current_image);
+                } else if (data.type === 'analysis_result' && data.current_image) {
+                    // Display the current image result immediately
+                    displaySingleImageResult(data.current_image);
+                }
+
+                if (data.complete) {
+                    // Analysis is complete
+                    eventSource.close();
+                    if (analyzeImagesBtn) {
+                        analyzeImagesBtn.disabled = false;
+                        analyzeImagesBtn.innerHTML = originalText;
+                    }
+                    alert(data.message);
+                }
+            };
+
+            eventSource.onerror = function(err) {
+                console.error('EventSource error:', err);
+                eventSource.close();
+                if (analyzeImagesBtn) {
+                    analyzeImagesBtn.disabled = false;
+                    analyzeImagesBtn.innerHTML = originalText;
+                }
+                throw new Error('Kết nối đến server bị gián đoạn');
+            };
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -420,6 +464,203 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function displaySingleImageResult(item) {
+        const resultsContainer = document.getElementById('resultsContainer');
+        if (!resultsContainer) {
+            console.error('Results container not found');
+            return;
+        }
+
+        // Clear previous results
+        resultsContainer.innerHTML = '';
+        
+        // Create analysis container
+        const analysisContainer = document.createElement('div');
+        analysisContainer.className = 'analysis-container';
+
+        // Create analysis grid
+        const analysisGrid = document.createElement('div');
+        analysisGrid.className = 'analysis-grid';
+
+        // Create analysis card
+        const analysisCard = document.createElement('div');
+        analysisCard.className = 'analysis-card';
+
+        // Create header section
+        const header = document.createElement('div');
+        header.className = 'analysis-header';
+        header.innerHTML = `
+            <h2>Phân tích biểu đồ dữ liệu</h2>
+        `;
+        
+        // Create content section
+        const content = document.createElement('div');
+        content.className = 'analysis-content';
+
+        // Create image section
+        const imageSection = document.createElement('div');
+        imageSection.className = 'image-section';
+        
+        const img = document.createElement('img');
+        img.src = `http://127.0.0.1:5000/results/${item.image}`;
+        img.alt = item.title || 'Biểu đồ phân tích';
+        img.className = 'analysis-image';
+        
+        const imageOverlay = document.createElement('div');
+        imageOverlay.className = 'image-overlay';
+        imageOverlay.textContent = item.title || 'Biểu đồ phân tích';
+        
+        imageSection.appendChild(img);
+        imageSection.appendChild(imageOverlay);
+
+        // Create analysis details section
+        const analysisDetails = document.createElement('div');
+        analysisDetails.className = 'analysis-details';
+
+        // AI Analysis Section
+        const aiAnalysis = document.createElement('div');
+        aiAnalysis.className = 'detail-section';
+        aiAnalysis.innerHTML = `
+            <h3>
+                <i class="fas fa-robot"></i>
+                Phân tích từ Gemini Pro Vision
+            </h3>
+            <div class="detail-content">
+                ${item.analysis.evaluation.split('\n')
+                    .map(paragraph => paragraph.trim())
+                    .filter(paragraph => paragraph.length > 0)
+                    .map(paragraph => `<p>${paragraph}</p>`)
+                    .join('')}
+            </div>
+        `;
+
+        // Confidence Section
+        const confidenceValue = (item.analysis.confidence * 100).toFixed(1);
+        const confidenceSection = document.createElement('div');
+        confidenceSection.className = 'detail-section';
+        
+        const getConfidenceLevel = (value) => {
+            if (value > 80) return { color: '#28a745', label: 'Rất đáng tin cậy', icon: '🎯' };
+            if (value > 60) return { color: '#17a2b8', label: 'Đáng tin cậy', icon: '👍' };
+            if (value > 40) return { color: '#ffc107', label: 'Cần kiểm chứng thêm', icon: '⚠️' };
+            return { color: '#dc3545', label: 'Độ tin cậy thấp', icon: '⚡' };
+        };
+        
+        const confidenceInfo = getConfidenceLevel(parseFloat(confidenceValue));
+        
+        confidenceSection.innerHTML = `
+            <h3>
+                <i class="fas fa-chart-line"></i>
+                Độ tin cậy của phân tích
+            </h3>
+            <div class="detail-content">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                    <span style="font-size: 1.5em;">${confidenceInfo.icon}</span>
+                    <span style="color: ${confidenceInfo.color}; font-weight: 500;">
+                        ${confidenceInfo.label}
+                    </span>
+                </div>
+                <div class="confidence-bar">
+                    <div class="confidence-progress" style="width: ${confidenceValue}%; background: ${confidenceInfo.color};"></div>
+                </div>
+                <div class="confidence-label">
+                    <span>Độ tin cậy</span>
+                    <span style="color: ${confidenceInfo.color}; font-weight: 600;">${confidenceValue}%</span>
+                </div>
+            </div>
+        `;
+
+        // Create action buttons
+        const actionButtons = document.createElement('div');
+        actionButtons.className = 'action-buttons';
+
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'action-button primary-button';
+        downloadBtn.innerHTML = `
+            <i class="fas fa-download"></i>
+            Tải xuống biểu đồ
+        `;
+        downloadBtn.onclick = () => {
+            const url = `http://127.0.0.1:5000/results/${encodeURIComponent(item.image)}`;
+            fetch(url, { mode: 'cors' })
+                .then(resp => {
+                    if (!resp.ok) throw new Error('Network response was not ok');
+                    return resp.blob();
+                })
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = item.image;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                })
+                .catch(err => {
+                    console.error('Error downloading image:', err);
+                    alert('Không thể tải xuống biểu đồ. Vui lòng thử lại.');
+                });
+        };
+
+        // Add share button
+        const shareBtn = document.createElement('button');
+        shareBtn.className = 'action-button secondary-button';
+        shareBtn.innerHTML = `
+            <i class="fas fa-share-alt"></i>
+            Chia sẻ kết quả
+        `;
+        shareBtn.onclick = () => {
+            // Implement share functionality
+            alert('Tính năng chia sẻ sẽ được cập nhật trong phiên bản tới!');
+        };
+
+        // Add download functionality
+        downloadBtn.onclick = () => {
+            const url = `http://127.0.0.1:5000/results/${encodeURIComponent(item.image)}`;
+            fetch(url, { mode: 'cors' })
+                .then(resp => {
+                    if (!resp.ok) throw new Error('Network response was not ok');
+                    return resp.blob();
+                })
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = item.image;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                })
+                .catch(err => {
+                    console.error('Error downloading image:', err);
+                    alert('Không thể tải xuống biểu đồ. Vui lòng thử lại.');
+                });
+        };
+
+        // Assemble the card
+        actionButtons.appendChild(downloadBtn);
+        actionButtons.appendChild(shareBtn);
+
+        analysisDetails.appendChild(aiAnalysis);
+        analysisDetails.appendChild(confidenceSection);
+        analysisDetails.appendChild(actionButtons);
+
+        content.appendChild(imageSection);
+        content.appendChild(analysisDetails);
+
+        analysisCard.appendChild(header);
+        analysisCard.appendChild(content);
+
+        analysisGrid.appendChild(analysisCard);
+        analysisContainer.appendChild(analysisGrid);
+        
+        // Add to main container and scroll
+        resultsContainer.appendChild(analysisContainer);
+        analysisCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     function displayImageAnalysisResults(results) {
         const resultsContainer = document.getElementById('resultsContainer');
         if (!resultsContainer) {
@@ -429,23 +670,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         resultsContainer.innerHTML = ''; // Clear previous results
 
-        results.forEach(item => {
-            const resultDiv = document.createElement('div');
-            resultDiv.classList.add('result-item');
-
-            const img = document.createElement('img');
-            img.src = `http://127.0.0.1:5000/results/${item.image}`;
-            img.alt = item.image;
-            img.classList.add('result-image');
-
-            const evaluation = document.createElement('p');
-            evaluation.textContent = `Đánh giá: ${item.analysis.evaluation}`;
-
-            resultDiv.appendChild(img);
-            resultDiv.appendChild(evaluation);
-
-            resultsContainer.appendChild(resultDiv);
-        });
+        results.forEach(item => displaySingleImageResult(item));
 
         const resultsSection = document.getElementById('resultsSection');
         if (resultsSection) {

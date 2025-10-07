@@ -1,0 +1,238 @@
+/* Analysis Results Layout */
+.analysis-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(650px, 1fr));
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.analysis-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    position: relative;
+}
+
+/* Header Section */
+.analysis-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px 30px;
+    border-radius: 16px 16px 0 0;
+}
+
+.analysis-header h2 {
+    font-size: 1.5em;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* Content Section */
+.analysis-content {
+    padding: 30px;
+    display: flex;
+    gap: 30px;
+    flex-direction: column;
+}
+
+/* Image Section */
+.image-section {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f8f9fa;
+}
+
+.analysis-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 12px;
+    transition: transform 0.3s ease;
+}
+
+.image-section:hover .analysis-image {
+    transform: scale(1.02);
+}
+
+.image-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.4), transparent);
+    padding: 15px;
+    color: white;
+    font-size: 0.9em;
+}
+
+/* Analysis Details */
+.analysis-details {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.detail-section {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.detail-section h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.detail-section h3 i {
+    color: #4CAF50;
+}
+
+.detail-content {
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Confidence Bar */
+.confidence-bar {
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.confidence-progress {
+    height: 100%;
+    transition: width 1s ease-in-out;
+    background: linear-gradient(90deg, #4CAF50, #45a049);
+    position: relative;
+}
+
+.confidence-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.action-button {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.primary-button {
+    background: #4CAF50;
+    color: white;
+}
+
+.secondary-button {
+    background: #f8f9fa;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.action-button i {
+    font-size: 1.2em;
+}
+
+/* Loading States */
+.loading {
+    position: relative;
+}
+
+.loading::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+    color: #666;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .analysis-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .analysis-content {
+        flex-direction: column;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .analysis-header {
+        padding: 15px 20px;
+    }
+    
+    .analysis-content {
+        padding: 20px;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.analysis-card {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Print Styles */
+@media print {
+    .action-buttons {
+        display: none;
+    }
+    
+    .analysis-card {
+        break-inside: avoid;
+        box-shadow: none;
+    }
+}

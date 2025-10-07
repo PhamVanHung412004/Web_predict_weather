@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 import os
 import numpy as np
@@ -1099,7 +1099,6 @@ def analyze_image_with_gemini(image_path):
             'evaluation': f'Không thể phân tích ảnh: {str(e)}',
             'confidence': 0.0
         }
-
 @app.route('/api/analyze_images', methods=['GET'])
 def analyze_images():
     """Analyze all images using Gemini AI (ORIGINAL - KEPT)"""
@@ -1174,6 +1173,105 @@ def analyze_images():
             'error': 'Internal server error', 
             'details': str(e)
         }), 500
+
+@app.route('/api/results/list', methods=['GET'])
+def list_results_images():
+    """Non-blocking: liệt kê các ảnh có sẵn trong thư mục results cùng title.
+    Phần phân tích Gemini sẽ được cập nhật qua SSE riêng.
+    """
+    try:
+        results_folder = app.config['RESULTS_FOLDER']
+        if not os.path.exists(results_folder):
+            os.makedirs(results_folder, exist_ok=True)
+
+        image_files = [f for f in os.listdir(results_folder) if allowed_image_file(f)]
+        image_files.sort()
+
+        images = [
+            {
+                'image': fn,
+                'title': get_plot_title(fn)
+            } for fn in image_files
+        ]
+
+        return jsonify({'success': True, 'results': images})
+    except Exception as e:
+        logger.error(f"Error listing results images: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/analyze_images_stream', methods=['GET'])
+def analyze_images_stream():
+    """SSE stream: gửi kết quả phân tích ảnh theo từng ảnh khi hoàn thành.
+    Sự kiện: event: progress | data: { image, title, analysis, index, total }
+    Kết thúc: event: done
+    """
+    try:
+        results_folder = app.config['RESULTS_FOLDER']
+        if not os.path.exists(results_folder):
+            os.makedirs(results_folder, exist_ok=True)
+
+        image_files = [f for f in os.listdir(results_folder) if allowed_image_file(f)]
+        image_files.sort()
+
+        def generate():
+            try:
+                if not image_files:
+                    yield f"event: done\n" \
+                          f"data: {json.dumps({'message': 'No images'})}\n\n"
+                    return
+
+                total = len(image_files)
+                for i, filename in enumerate(image_files, 1):
+                    file_path = os.path.join(results_folder, filename)
+                    # thông báo bắt đầu xử lý
+                    yield f"event: progress\n" \
+                          f"data: {json.dumps({'image': filename, 'title': get_plot_title(filename), 'status': 'processing', 'index': i, 'total': total}, ensure_ascii=False)}\n\n"
+
+                    try:
+                        analysis_result = analyze_image_with_gemini(file_path)
+                        payload = {
+                            'image': filename,
+                            'title': get_plot_title(filename),
+                            'analysis': analysis_result,
+                            'index': i,
+                            'total': total
+                        }
+                        yield f"event: progress\n" \
+                              f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+                    except Exception as e:
+                        err_payload = {
+                            'image': filename,
+                            'title': get_plot_title(filename),
+                            'analysis': {
+                                'evaluation': f'Lỗi phân tích: {str(e)}',
+                                'confidence': 0.0
+                            },
+                            'index': i,
+                            'total': total
+                        }
+                        yield f"event: progress\n" \
+                              f"data: {json.dumps(err_payload, ensure_ascii=False)}\n\n"
+
+                    if i < total:
+                        time.sleep(1)
+
+                yield f"event: done\n" \
+                      f"data: {json.dumps({'message': 'completed', 'total': total})}\n\n"
+            except GeneratorExit:
+                return
+
+        headers = {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+        return Response(generate(), headers=headers)
+    except Exception as e:
+        logger.error(f"Error in analyze_images_stream: {str(e)}")
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
 
 # Cleanup
 def cleanup_on_exit():
