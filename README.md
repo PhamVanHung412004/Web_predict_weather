@@ -1,116 +1,100 @@
-# Frontend - Ứng dụng đánh giá ô nhiễm không khí
+# Ứng dụng Dự đoán Thời tiết AI
 
-## Mô tả
-Giao diện web hiện đại cho ứng dụng đánh giá ô nhiễm không khí từ ảnh vệ tinh. Sử dụng HTML5, CSS3 và JavaScript thuần.
+Ứng dụng dự đoán thời tiết sử dụng trí tuệ nhân tạo với giao diện web thân thiện, được xây dựng bằng Flask (Backend) và Next.js (Frontend).
 
-## Tính năng
+## 🎬 Demo sản phẩm
 
-### 🎨 Giao diện hiện đại
-- Design tối giản với màu xanh dương và trắng
-- Responsive cho desktop và mobile
-- Hiệu ứng hover mượt mà
-- Font chữ Inter hiện đại
+Xem video demo ứng dụng tại đây: **[https://youtu.be/FKRR3InKK34](https://youtu.be/FKRR3InKK34)**
 
-### 📤 Upload ảnh
-- Drag & drop ảnh vệ tinh
-- Chọn file từ máy tính
-- Preview ảnh trước khi phân tích
-- Hỗ trợ JPG, PNG, TIFF
+## 📋 Yêu cầu hệ thống
 
-### 🔍 Phân tích AI
-- Gửi ảnh đến API backend
-- Hiển thị loading state
-- Xử lý lỗi gracefully
+- **Python**: 3.10.18
+- **Node.js**: LTS (Long Term Support)
+- **Conda**: Miniconda hoặc Anaconda
+- **Git**: Để clone repository
 
-### 📊 Kết quả trực quan
-- Hiển thị AQI với màu sắc tương ứng
-- Thông tin chi tiết về chất lượng không khí
-- Bản đồ nhiệt ô nhiễm
-- Các chỉ số khí tượng
+## 🚀 Hướng dẫn cài đặt
 
-## Cấu trúc thư mục
-```
-frontend/
-├── index.html          # Trang chủ
-├── css/
-│   └── style.css      # Stylesheet chính
-├── js/
-│   └── app.js         # JavaScript chính
-├── images/            # Hình ảnh tĩnh
-└── README.md          # Tài liệu này
-```
+### Bước 1: Tải mã nguồn về máy
 
-## Sử dụng
-
-### 1. Mở trực tiếp
-Mở file `index.html` trong trình duyệt web.
-
-### 2. Chạy với server local
 ```bash
-# Sử dụng Python
-python -m http.server 8000
-
-# Sử dụng Node.js
-npx serve .
-
-# Sử dụng PHP
-php -S localhost:8000
+git clone https://github.com/PhamVanHung412004/Web_predict_weather.git
+cd Web_predict_weather
 ```
 
-Truy cập: http://localhost:8000
+### Bước 2: Cài đặt Backend (Python + Flask)
 
-## API Integration
+#### 2.1. Tạo môi trường ảo với Conda
 
-Frontend giao tiếp với backend qua các endpoint:
-
-- `GET /api/health` - Kiểm tra trạng thái API
-
-## Responsive Design
-
-### Desktop (≥ 768px)
-- Layout 2 cột cho kết quả
-- Sidebar navigation
-- Grid layout cho features
-
-### Mobile (< 768px)
-- Layout 1 cột
-- Hamburger menu
-- Touch-friendly buttons
-- Optimized images
-
-## Browser Support
-- Chrome 60+
-- Firefox 55+
-- Safari 12+
-- Edge 79+
-
-## Customization
-
-### Màu sắc
-Chỉnh sửa CSS variables trong `style.css`:
-```css
-:root {
-  --primary-color: #4CAF50;
-  --secondary-color: #2196F3;
-  --background-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
+```bash
+conda create -n weather_env python=3.10.18
+conda activate weather_env
 ```
 
-### API Endpoint
-Thay đổi API URL trong `app.js`:
-```javascript
-const API_BASE_URL = 'http://localhost:5000';
+#### 2.2. Cài đặt các thư viện Python
+
+```bash
+pip install -r requirements.txt
 ```
 
-## Performance
-- Lazy loading cho images
-- Minified CSS và JS
-- Optimized animations
-- Efficient DOM manipulation
+### Bước 3: Cài đặt Frontend (Next.js)
 
-## Accessibility
-- Semantic HTML
-- ARIA labels
-- Keyboard navigation
-- Screen reader support
-- High contrast support
+#### 3.1. Cài đặt Node.js
+
+Mở **Command Prompt** hoặc **PowerShell** với **quyền Administrator** và chạy:
+
+```bash
+winget install OpenJS.NodeJS.LTS
+```
+
+> **Lưu ý**: Sau khi cài đặt xong, hãy **đóng và mở lại terminal** để hệ thống nhận Node.js.
+
+#### 3.2. Cài đặt dependencies và khởi chạy Frontend
+
+Mở terminal thông thường (không cần quyền admin):
+
+```bash
+cd FE_nextjs
+npm install
+npm run dev
+```
+
+✅ Frontend sẽ chạy tại: **http://localhost:3000**
+
+### Bước 4: Cấu hình và khởi chạy Backend
+
+#### 4.1. Tạo file cấu hình API Key
+
+Tạo file `.env` trong thư mục `backend` với nội dung sau:
+
+```env
+# Danh sách API key Gemini (ngăn cách bằng dấu phẩy)
+YOUR_API_KEY=AIzaSyA123abc,AIzaSyB456def,AIzaSyC789ghi,AIzaSyD012jkl,AIzaSyE345mno
+```
+
+> **💡 Khuyến nghị**: Tạo 4-5 tài khoản Gemini để có 4-5 API key khác nhau. Hệ thống sẽ tự động luân phiên sử dụng các key để tránh bị giới hạn API (rate limit).
+
+#### 4.2. Khởi động server Flask
+
+```bash
+cd backend
+python server.py
+```
+
+✅ Backend API sẽ chạy tại cổng mặc định của Flask (thường là **http://localhost:5001**)
+
+## 📝 Cách sử dụng
+
+1. Đảm bảo cả Backend và Frontend đều đang chạy
+2. Mở trình duyệt và truy cập **http://localhost:3000**
+3. Sử dụng giao diện web để dự đoán thời tiết
+
+## 🔧 Khắc phục sự cố
+
+- **Lỗi API key**: Kiểm tra file `.env` đã được tạo đúng trong thư mục `backend`
+- **Lỗi cổng đã được sử dụng**: Đảm bảo không có ứng dụng nào khác đang chạy trên cổng 3000 hoặc 5000
+- **Lỗi cài đặt packages**: Thử xóa thư mục `node_modules` và chạy lại `npm install`
+
+## 📧 Liên hệ
+
+Nếu gặp vấn đề, vui lòng tạo issue trên GitHub repository.
