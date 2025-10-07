@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory, Response
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
 import numpy as np
@@ -64,9 +64,9 @@ CORS(app, resources={
 
 # Configuration
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['RESULTS_FOLDER'] = 'results'
-app.config['MODELS_FOLDER'] = 'models'
+app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads')
+app.config['RESULTS_FOLDER'] = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'backend/results')
+app.config['MODELS_FOLDER'] = os.path.join(os.path.dirname(__file__), 'models')
 
 # Create directories
 for folder in [app.config['UPLOAD_FOLDER'], app.config['RESULTS_FOLDER'], app.config['MODELS_FOLDER']]:
@@ -1054,6 +1054,142 @@ def serve_image(filename):
         logger.error(f'Error serving file {filename}: {str(e)}')
         return jsonify({'error': 'Lỗi khi tải file', 'details': str(e)}), 500
 
+@app.route('/api/analyze_images_stream')
+def analyze_images_stream():
+    """Streaming endpoint for Gemini AI analysis with Server-Sent Events"""
+    def generate():
+        try:
+            logger.info("Starting streaming analysis...")
+            results_folder = app.config['RESULTS_FOLDER']
+            
+            if not os.path.exists(results_folder):
+                yield f"data: {json.dumps({'error': 'Results folder does not exist'})}\n\n"
+                return
+
+            # Lọc các file ảnh và sắp xếp theo thời gian tạo mới nhất
+            image_files = []
+            for f in os.listdir(results_folder):
+                if allowed_image_file(f):
+                    file_path = os.path.join(results_folder, f)
+                    # Chỉ lấy các file được tạo trong vòng 1 phút gần đây
+                    if time.time() - os.path.getctime(file_path) < 60:
+                        image_files.append(f)
+            image_files.sort(key=lambda f: os.path.getctime(os.path.join(results_folder, f)), reverse=True)
+            
+            if not image_files:
+                yield f"data: {json.dumps({'message': 'No image files found'})}\n\n"
+                return
+
+            logger.info(f"Found {len(image_files)} images to analyze")
+            
+            for i, filename in enumerate(image_files, 1):
+                file_path = os.path.join(results_folder, filename)
+                logger.info(f"Processing image {i}/{len(image_files)}: {filename}")
+
+                try:
+                    # Ensure file exists before analyzing
+                    if not os.path.exists(file_path):
+                        logger.error(f"File not found: {file_path}")
+                        payload = {
+                            'image': filename,
+                            'title': get_plot_title(filename),
+                            'analysis': {
+                                'evaluation': f'File không tồn tại: {filename}',
+                                'confidence': 0.0
+                            }
+                        }
+                        yield f"event: progress\ndata: {json.dumps(payload)}\n\n"
+                        continue
+                        
+                    analysis_result = analyze_image_with_gemini(file_path)
+                    
+                    payload = {
+                        'image': filename,
+                        'title': get_plot_title(filename),
+                        'analysis': analysis_result
+                    }
+                    
+                    yield f"event: progress\ndata: {json.dumps(payload)}\n\n"
+                    logger.info(f"Successfully analyzed: {filename}")
+                    
+                    if i < len(image_files):
+                        time.sleep(2)  # Rate limiting
+                        
+                except Exception as e:
+                    logger.error(f"Error analyzing {filename}: {str(e)}")
+                    
+                    payload = {
+                        'image': filename,
+                        'title': get_plot_title(filename),
+                        'analysis': {
+                            'evaluation': f'Lỗi phân tích: {str(e)}',
+                            'confidence': 0.0
+                        }
+                    }
+                    
+                    yield f"event: progress\ndata: {json.dumps(payload)}\n\n"
+
+            # Send done signal
+            yield f"data: {json.dumps({'status': 'done'})}\n\n"
+            yield "event: done\ndata: {}\n\n"
+
+        except Exception as e:
+            logger.error(f"Error in streaming analysis: {str(e)}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return app.response_class(
+        generate(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Cache-Control'
+        }
+    )
+
+@app.route('/api/results/list')
+def list_results():
+    """List all result images"""
+    try:
+        results_folder = app.config['RESULTS_FOLDER']
+        
+        if not os.path.exists(results_folder):
+            return jsonify({'images': []})
+
+        # Lọc các file ảnh và sắp xếp theo thời gian tạo mới nhất
+        image_files = []
+        current_time = time.time()
+        timestamp = datetime.now().strftime("%Y%m%d")
+        
+        for f in os.listdir(results_folder):
+            if allowed_image_file(f) and timestamp in f:  # Chỉ lấy ảnh của phiên hiện tại
+                file_path = os.path.join(results_folder, f)
+                # Chỉ lấy các file được tạo trong vòng 1 phút gần đây
+                if current_time - os.path.getctime(file_path) < 60:
+                    image_files.append(f)
+        
+        # Sắp xếp theo thời gian tạo mới nhất
+        image_files.sort(key=lambda f: os.path.getctime(os.path.join(results_folder, f)), reverse=True)
+        
+        images = []
+        for filename in image_files:
+            images.append({
+                'filename': filename,
+                'title': get_plot_title(filename),
+                'url': f"http://localhost:5001/results/{filename}?t={int(current_time)}"
+            })
+
+        return jsonify({
+            'success': True,
+            'images': images,
+            'total': len(images)
+        })
+
+    except Exception as e:
+        logger.error(f"Error listing results: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/health')
 def health_check():
     """Health check endpoint"""
@@ -1099,6 +1235,37 @@ def analyze_image_with_gemini(image_path):
             'evaluation': f'Không thể phân tích ảnh: {str(e)}',
             'confidence': 0.0
         }
+@app.route('/api/analyze_image', methods=['POST'])
+def analyze_single_image():
+    """Analyze a single image using Gemini AI"""
+    try:
+        data = request.get_json()
+        filename = data.get('filename')
+        
+        if not filename:
+            return jsonify({'error': 'Filename is required'}), 400
+            
+        file_path = os.path.join(app.config['RESULTS_FOLDER'], filename)
+        
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'File not found'}), 404
+            
+        analysis_result = analyze_image_with_gemini(file_path)
+        
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'title': get_plot_title(filename),
+            'analysis': analysis_result
+        })
+        
+    except Exception as e:
+        logger.error(f"Error analyzing image: {str(e)}")
+        return jsonify({
+            'error': 'Analysis failed',
+            'details': str(e)
+        }), 500
+
 @app.route('/api/analyze_images', methods=['GET'])
 def analyze_images():
     """Analyze all images using Gemini AI (ORIGINAL - KEPT)"""
@@ -1173,105 +1340,6 @@ def analyze_images():
             'error': 'Internal server error', 
             'details': str(e)
         }), 500
-
-@app.route('/api/results/list', methods=['GET'])
-def list_results_images():
-    """Non-blocking: liệt kê các ảnh có sẵn trong thư mục results cùng title.
-    Phần phân tích Gemini sẽ được cập nhật qua SSE riêng.
-    """
-    try:
-        results_folder = app.config['RESULTS_FOLDER']
-        if not os.path.exists(results_folder):
-            os.makedirs(results_folder, exist_ok=True)
-
-        image_files = [f for f in os.listdir(results_folder) if allowed_image_file(f)]
-        image_files.sort()
-
-        images = [
-            {
-                'image': fn,
-                'title': get_plot_title(fn)
-            } for fn in image_files
-        ]
-
-        return jsonify({'success': True, 'results': images})
-    except Exception as e:
-        logger.error(f"Error listing results images: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/analyze_images_stream', methods=['GET'])
-def analyze_images_stream():
-    """SSE stream: gửi kết quả phân tích ảnh theo từng ảnh khi hoàn thành.
-    Sự kiện: event: progress | data: { image, title, analysis, index, total }
-    Kết thúc: event: done
-    """
-    try:
-        results_folder = app.config['RESULTS_FOLDER']
-        if not os.path.exists(results_folder):
-            os.makedirs(results_folder, exist_ok=True)
-
-        image_files = [f for f in os.listdir(results_folder) if allowed_image_file(f)]
-        image_files.sort()
-
-        def generate():
-            try:
-                if not image_files:
-                    yield f"event: done\n" \
-                          f"data: {json.dumps({'message': 'No images'})}\n\n"
-                    return
-
-                total = len(image_files)
-                for i, filename in enumerate(image_files, 1):
-                    file_path = os.path.join(results_folder, filename)
-                    # thông báo bắt đầu xử lý
-                    yield f"event: progress\n" \
-                          f"data: {json.dumps({'image': filename, 'title': get_plot_title(filename), 'status': 'processing', 'index': i, 'total': total}, ensure_ascii=False)}\n\n"
-
-                    try:
-                        analysis_result = analyze_image_with_gemini(file_path)
-                        payload = {
-                            'image': filename,
-                            'title': get_plot_title(filename),
-                            'analysis': analysis_result,
-                            'index': i,
-                            'total': total
-                        }
-                        yield f"event: progress\n" \
-                              f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
-                    except Exception as e:
-                        err_payload = {
-                            'image': filename,
-                            'title': get_plot_title(filename),
-                            'analysis': {
-                                'evaluation': f'Lỗi phân tích: {str(e)}',
-                                'confidence': 0.0
-                            },
-                            'index': i,
-                            'total': total
-                        }
-                        yield f"event: progress\n" \
-                              f"data: {json.dumps(err_payload, ensure_ascii=False)}\n\n"
-
-                    if i < total:
-                        time.sleep(1)
-
-                yield f"event: done\n" \
-                      f"data: {json.dumps({'message': 'completed', 'total': total})}\n\n"
-            except GeneratorExit:
-                return
-
-        headers = {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
-        return Response(generate(), headers=headers)
-    except Exception as e:
-        logger.error(f"Error in analyze_images_stream: {str(e)}")
-        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
 
 # Cleanup
 def cleanup_on_exit():

@@ -25,7 +25,6 @@ from pathlib import Path
 import time
 import atexit
 import signal
-from flask import Response
 
 from model_gemini import Model
 import yaml
@@ -793,82 +792,6 @@ def analyze_images():
             'details': str(e),
             'message': 'Có lỗi xảy ra khi phân tích ảnh'
         }), 500
-
-@app.route('/api/analyze_images_stream', methods=['GET'])
-def analyze_images_stream():
-    """SSE: Stream kết quả phân tích từng ảnh ngay khi xong.
-
-    Gửi sự kiện theo định dạng SSE với payload JSON: { image, analysis }.
-    """
-    try:
-        results_folder = app.config['RESULTS_FOLDER']
-        if not os.path.exists(results_folder):
-            os.makedirs(results_folder, exist_ok=True)
-
-        image_files = [f for f in os.listdir(results_folder) if allowed_image_file(f)]
-        # đảm bảo thứ tự ổn định theo thời gian tạo tên file
-        image_files.sort()
-
-        def event_stream():
-            try:
-                if not image_files:
-                    # gửi sự kiện done nếu không có ảnh
-                    yield f"event: done\n" \
-                          f"data: {json.dumps({'message': 'No images'})}\n\n"
-                    return
-
-                for i, filename in enumerate(image_files, 1):
-                    file_path = os.path.join(results_folder, filename)
-                    # thông báo bắt đầu
-                    yield f"event: progress\n" \
-                          f"data: {json.dumps({'image': filename, 'status': 'processing', 'index': i, 'total': len(image_files)})}\n\n"
-
-                    try:
-                        analysis_result = analyze_image_with_gemini(file_path)
-                        payload = {
-                            'image': filename,
-                            'analysis': analysis_result,
-                            'index': i,
-                            'total': len(image_files)
-                        }
-                        yield f"event: progress\n" \
-                              f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
-                    except Exception as e:
-                        err_payload = {
-                            'image': filename,
-                            'analysis': {
-                                'evaluation': f'Lỗi phân tích: {str(e)}',
-                                'confidence': 0.0
-                            },
-                            'index': i,
-                            'total': len(image_files)
-                        }
-                        yield f"event: progress\n" \
-                              f"data: {json.dumps(err_payload, ensure_ascii=False)}\n\n"
-
-                    # nhịp giữ kết nối ổn định và tránh nghẽn API rate
-                    if i < len(image_files):
-                        time.sleep(1)
-
-                yield f"event: done\n" \
-                      f"data: {json.dumps({'message': 'completed', 'total': len(image_files)})}\n\n"
-            except GeneratorExit:
-                # client đóng kết nối
-                return
-
-        headers = {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
-
-        return Response(event_stream(), headers=headers)
-    except Exception as e:
-        logger.error(f"Error in analyze_images_stream: {str(e)}")
-        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
 
 # Cleanup function for app shutdown
 def cleanup_on_exit():
