@@ -30,7 +30,7 @@ export default function AnalysisResults({ data, polling = false, setPolling }) {
 
     const fetchList = async () => {
       try {
-        const res = await axios.get('http://localhost:5001/results/list', { timeout: 5000 })
+        const res = await axios.get('/api/results/list', { timeout: 5000 })
         if (!isMounted) return
 
         if (res.data && res.data.images) {
@@ -73,31 +73,40 @@ export default function AnalysisResults({ data, polling = false, setPolling }) {
     }
 
     if(polling) {
-      // Clear previous images when polling starts
-      setImages([])
-      console.log('Clearing all previous images before starting new polling session')
+      console.log('Polling started; keeping existing images and accumulating new ones')
 
       // Fetch list of images and analyze each one
       const analyzeAllImages = async () => {
         try {
           // Fetch list of images
-          const res = await axios.get('http://127.0.0.1:5001/results/list', { timeout: 5000 })
+          const res = await axios.get('/api/results/list', { timeout: 5000 })
           if(res.data && res.data.images) {
             console.log('Found images:', res.data.images.length)
             
             // Reset images state with new images
-            const newImages = res.data.images.map(img => ({
+            const incoming = res.data.images.map(img => ({
               ...img,
               analysis: null,
-              url: img.url || `http://127.0.0.1:5001/results/${img.filename}?t=${Date.now()}`
+              url: img.url || `/api/results/${img.filename}`
             }))
-            setImages(newImages)
+
+            // Merge incoming with existing without dropping older items
+            let mergedForLoop = []
+            setImages(prev => {
+              const existingByName = new Map(prev.map(i => [i.filename, i]))
+              const merged = [...prev]
+              incoming.forEach(img => {
+                if (!existingByName.has(img.filename)) merged.push(img)
+              })
+              mergedForLoop = merged
+              return merged
+            })
 
             // Analyze images one by one
-            for (const img of newImages) {
+            for (const img of mergedForLoop) {
               try {
                 console.log('Analyzing image:', img.filename)
-                const analysisRes = await axios.post('http://127.0.0.1:5001/api/analyze_image', {
+                const analysisRes = await axios.post('/api/analyze_image', {
                   filename: img.filename
                 })
                 
@@ -151,7 +160,7 @@ export default function AnalysisResults({ data, polling = false, setPolling }) {
   const analyzeImage = async (filename) => {
     try {
       console.log('Analyzing image:', filename)
-      const response = await axios.post('http://localhost:5001/api/analyze_image', {
+      const response = await axios.post('/api/analyze_image', {
         filename: filename
       })
       if (response.data && response.data.analysis) {
@@ -191,7 +200,7 @@ export default function AnalysisResults({ data, polling = false, setPolling }) {
         if (!img.analysis) {
           try {
             console.log('Analyzing existing image:', img.filename)
-            const analysisRes = await axios.post('http://localhost:5001/api/analyze_image', {
+            const analysisRes = await axios.post('/api/analyze_image', {
               filename: img.filename
             })
             if (analysisRes.data && analysisRes.data.analysis) {
@@ -212,7 +221,7 @@ export default function AnalysisResults({ data, polling = false, setPolling }) {
     analyzeExistingImages()
 
     console.log('Opening new SSE connection to analyze_images_stream')
-    const es = new EventSource('http://127.0.0.1:5001/api/analyze_images_stream')
+    const es = new EventSource('/api/analyze_images_stream')
     sseRef.current = es
 
     es.addEventListener('progress', (evt) => {
@@ -231,7 +240,7 @@ export default function AnalysisResults({ data, polling = false, setPolling }) {
                     ...i,
                     title: i.title || payload.title,
                     analysis: payload.analysis ?? i.analysis,
-                    url: `http://127.0.0.1:5001/results/${i.filename}?t=${Date.now()}`
+                    url: `/api/results/${i.filename}`
                   }
                 : i
             )
@@ -245,12 +254,16 @@ export default function AnalysisResults({ data, polling = false, setPolling }) {
           }
 
           console.log('Adding new image analysis:', payload.image)
+          // Only add if not exists (should be ensured, but double-check)
+          const exists = prev.some(i => i.filename === payload.image)
+          if (exists) return prev
           return [
             ...prev,
             {
               filename: payload.image,
               title: payload.title,
               analysis: payload.analysis || null,
+              url: `/api/results/${payload.image}`
             },
           ]
         })
@@ -306,7 +319,7 @@ export default function AnalysisResults({ data, polling = false, setPolling }) {
           return {
             filename: p.filename,
             title: p.title,
-            url: p.url || `http://localhost:5001/results/${p.filename}?t=${Date.now()}`,
+            url: p.url || `/api/results/${p.filename}`,
             analysis: existingImage?.analysis || null
           }
         })
@@ -353,16 +366,30 @@ export default function AnalysisResults({ data, polling = false, setPolling }) {
 
         <div className="flex flex-col gap-6 mt-4">
           {images && images.length > 0 ? (
-            images.map((p) => (
+            [...images]
+              .map((p, _idx) => ({ ...p, _idx }))
+              .sort((a, b) => {
+                const score = (f) => {
+                  if (f?.includes('ml_residual_plot')) return -1 // always last
+                  if (f?.includes('ml_elbow_method')) return 3 // first
+                  if (f?.includes('ml_pca_clusters')) return 2 // then KMeans clusters
+                  return 0 // others keep original relative order
+                }
+                const sa = score(a.filename)
+                const sb = score(b.filename)
+                if (sa !== sb) return sb - sa
+                return a._idx - b._idx
+              })
+              .map((p) => (
               <div key={p.filename} className="w-full">
                 <img
-                  src={p.url || `http://localhost:5001/results/${p.filename}?t=${Date.now()}`}
+                  src={p.url || `/api/results/${p.filename}`}
                   alt={p.title}
                   className="w-full h-[520px] object-contain rounded-md border border-white/5"
                   onClick={() => openModal(p)}
                   onError={(e) => {
                     console.error('Error loading image:', p.filename)
-                    e.currentTarget.src = `http://localhost:5001/results/${p.filename}?t=${Date.now()}`
+                    e.currentTarget.src = `/api/results/${p.filename}`
                   }}
                 />
                 <div className="text-sm text-slate-300 mt-2">{p.title}</div>
@@ -372,10 +399,12 @@ export default function AnalysisResults({ data, polling = false, setPolling }) {
                   {p.analysis ? (
                     <>
                       <div className="font-medium text-slate-100">Gemini AI đánh giá</div>
-                      <div className="mt-1 whitespace-pre-wrap">{p.analysis.evaluation}</div>
-                      {typeof p.analysis.confidence !== 'undefined' && (
+                      <div className="mt-1 whitespace-pre-wrap">
+                        {typeof p.analysis === 'string' ? p.analysis : (p.analysis?.evaluation || '')}
+                      </div>
+                      {typeof (typeof p.analysis === 'object' && p.analysis?.confidence) !== 'undefined' && (
                         <div className="text-xs text-slate-400 mt-2">
-                          Độ tin cậy: {(Number(p.analysis.confidence) * 100).toFixed(1)}%
+                          Độ tin cậy: {(Number(typeof p.analysis === 'object' ? p.analysis.confidence : 0) * 100).toFixed(1)}%
                         </div>
                       )}
                     </>
@@ -404,7 +433,7 @@ export default function AnalysisResults({ data, polling = false, setPolling }) {
           <div className="relative max-w-6xl w-full z-10">
             <div className="flex items-start justify-end gap-2 mb-3">
               <a
-                href={`http://localhost:5001/results/${selectedImage.filename}`}
+                href={`/api/results/${selectedImage.filename}`}
                 download
                 className="inline-flex items-center gap-2 bg-white/6 text-slate-100 px-3 py-2 rounded-md hover:bg-white/10"
               >
@@ -421,7 +450,7 @@ export default function AnalysisResults({ data, polling = false, setPolling }) {
 
             <div className="bg-transparent p-4 rounded">
               <img
-                src={`http://localhost:5001/results/${selectedImage.filename}`}
+                src={`/api/results/${selectedImage.filename}`}
                 alt={selectedImage.title}
                 className="w-full max-h-[80vh] object-contain rounded-md mx-auto"
               />

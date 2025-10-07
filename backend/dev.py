@@ -18,6 +18,11 @@ import matplotlib.dates as mdates
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
+try:
+    from yellowbrick.cluster import KElbowVisualizer
+    _YB_AVAILABLE = True
+except Exception:
+    _YB_AVAILABLE = False
 from sklearn.ensemble import RandomForestRegressor, IsolationForest
 from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
@@ -257,28 +262,56 @@ def apply_pca(X, n_components=2):
     
     return X_pca, pca, scaler, explained_variance
 
-def apply_kmeans(X, n_clusters=4):
-    """Apply KMeans clustering"""
-    logger.info(f"Applying KMeans with {n_clusters} clusters...")
-    
+def apply_kmeans(X, timestamp, k_range=(1, 10)):
+    """Apply KMeans using Yellowbrick KElbowVisualizer to find optimal k.
+
+    Returns: clusters, kmeans, scaler, cluster_stats, optimal_k, elbow_plot_path
+    """
+    if not _YB_AVAILABLE:
+        raise ImportError("yellowbrick is required for KElbowVisualizer. Please install 'yellowbrick'.")
+
+    logger.info(f"Applying KMeans with KElbowVisualizer, k_range={k_range}...")
+
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-    
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+
+    # Use Yellowbrick to determine optimal k
+    base_model = KMeans(random_state=42, n_init=10)
+    visualizer = KElbowVisualizer(base_model, k=(int(k_range[0]), int(k_range[1])), timings=False)
+
+    # Fit visualizer
+    visualizer.fit(X_scaled)
+
+    optimal_k = int(visualizer.elbow_value_) if visualizer.elbow_value_ is not None else int(k_range[0])
+
+    # Save elbow plot
+    elbow_plot_path = os.path.join(app.config['RESULTS_FOLDER'], f"{timestamp}_ml_elbow_method.png")
+    try:
+        # yellowbrick 1.x supports .show(outpath=...) and .poof(outpath=...)
+        if hasattr(visualizer, 'poof'):
+            visualizer.poof(outpath=elbow_plot_path)
+        else:
+            visualizer.show(outpath=elbow_plot_path, clear_figure=True)
+    except Exception as e:
+        logger.error(f"Error saving elbow plot: {str(e)}")
+        elbow_plot_path = None
+
+    # Final KMeans with optimal k
+    kmeans = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
     clusters = kmeans.fit_predict(X_scaled)
-    
+
     # Cluster statistics
     cluster_stats = {}
-    for i in range(n_clusters):
+    for i in range(optimal_k):
         cluster_mask = clusters == i
         cluster_stats[f'Cluster {i}'] = {
             'count': int(np.sum(cluster_mask)),
             'percentage': float(np.sum(cluster_mask) / len(clusters) * 100)
         }
-    
-    logger.info(f"KMeans complete. Cluster distribution: {cluster_stats}")
-    
-    return clusters, kmeans, scaler, cluster_stats
+
+    logger.info(f"KMeans complete with optimal_k={optimal_k}. Distribution: {cluster_stats}")
+
+    return clusters, kmeans, scaler, cluster_stats, optimal_k, elbow_plot_path
 
 def detect_anomalies_isolation_forest(X, contamination=0.05):
     """Detect anomalies using Isolation Forest"""
@@ -847,8 +880,8 @@ def analyze_csv():
                     X_pca, pca_model, pca_scaler, explained_var = apply_pca(X, n_components=2)
                     pca_result = (X_pca, pca_model, pca_scaler, explained_var)
                     
-                    # KMeans Clustering
-                    clusters, kmeans_model, kmeans_scaler, cluster_stats = apply_kmeans(X, n_clusters=4)
+                    # KMeans Clustering (Elbow via Yellowbrick)
+                    clusters, kmeans_model, kmeans_scaler, cluster_stats, optimal_k, elbow_plot_path = apply_kmeans(X, timestamp, k_range=(1, 10))
                     
                     # Anomaly Detection
                     anomaly_labels, anomaly_scores, iso_forest = detect_anomalies_isolation_forest(X, contamination=0.05)
@@ -861,6 +894,8 @@ def analyze_csv():
                         df_ml, rf_model, X_test, y_test, y_pred, feature_importance,
                         pca_result, clusters, anomaly_labels, timestamp
                     )
+                    if elbow_plot_path:
+                        ml_plot_paths.append(elbow_plot_path)
                     
                     # Prepare ML results
                     ml_results = {
@@ -873,7 +908,7 @@ def analyze_csv():
                             'total_variance_explained': float(sum(explained_var))
                         },
                         'clustering': {
-                            'n_clusters': 4,
+                            'n_clusters': int(optimal_k),
                             'cluster_distribution': cluster_stats
                         },
                         'anomaly_detection': {
@@ -1016,6 +1051,8 @@ def get_plot_title(filename):
         return '[ML] Phát hiện bất thường (Isolation Forest)'
     elif 'ml_residual_plot' in filename:
         return '[ML] Phân tích Residual'
+    elif 'ml_elbow_method' in filename:
+        return '[ML] Elbow method: Chọn số cụm tối ưu'
     else:
         return 'Biểu đồ phân tích'
 
