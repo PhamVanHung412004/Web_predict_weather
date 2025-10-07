@@ -6,7 +6,7 @@ export const config = {
   }
 }
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:5000'
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:5001'
 
 function getRawBody(req){
   return new Promise((resolve, reject) =>{

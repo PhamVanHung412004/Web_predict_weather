@@ -65,7 +65,7 @@ CORS(app, resources={
 # Configuration
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads')
-app.config['RESULTS_FOLDER'] = os.path.join(os.path.dirname(__file__), 'results')
+app.config['RESULTS_FOLDER'] = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'backend/results')
 app.config['MODELS_FOLDER'] = os.path.join(os.path.dirname(__file__), 'models')
 
 # Create directories
@@ -1066,7 +1066,15 @@ def analyze_images_stream():
                 yield f"data: {json.dumps({'error': 'Results folder does not exist'})}\n\n"
                 return
 
-            image_files = [f for f in os.listdir(results_folder) if allowed_image_file(f)]
+            # Lọc các file ảnh và sắp xếp theo thời gian tạo mới nhất
+            image_files = []
+            for f in os.listdir(results_folder):
+                if allowed_image_file(f):
+                    file_path = os.path.join(results_folder, f)
+                    # Chỉ lấy các file được tạo trong vòng 1 phút gần đây
+                    if time.time() - os.path.getctime(file_path) < 60:
+                        image_files.append(f)
+            image_files.sort(key=lambda f: os.path.getctime(os.path.join(results_folder, f)), reverse=True)
             
             if not image_files:
                 yield f"data: {json.dumps({'message': 'No image files found'})}\n\n"
@@ -1149,14 +1157,27 @@ def list_results():
         if not os.path.exists(results_folder):
             return jsonify({'images': []})
 
-        image_files = [f for f in os.listdir(results_folder) if allowed_image_file(f)]
+        # Lọc các file ảnh và sắp xếp theo thời gian tạo mới nhất
+        image_files = []
+        current_time = time.time()
+        timestamp = datetime.now().strftime("%Y%m%d")
+        
+        for f in os.listdir(results_folder):
+            if allowed_image_file(f) and timestamp in f:  # Chỉ lấy ảnh của phiên hiện tại
+                file_path = os.path.join(results_folder, f)
+                # Chỉ lấy các file được tạo trong vòng 1 phút gần đây
+                if current_time - os.path.getctime(file_path) < 60:
+                    image_files.append(f)
+        
+        # Sắp xếp theo thời gian tạo mới nhất
+        image_files.sort(key=lambda f: os.path.getctime(os.path.join(results_folder, f)), reverse=True)
         
         images = []
         for filename in image_files:
             images.append({
                 'filename': filename,
                 'title': get_plot_title(filename),
-                'url': f"http://127.0.0.1:5000/results/{filename}"
+                'url': f"http://localhost:5001/results/{filename}?t={int(current_time)}"
             })
 
         return jsonify({
@@ -1214,6 +1235,37 @@ def analyze_image_with_gemini(image_path):
             'evaluation': f'Không thể phân tích ảnh: {str(e)}',
             'confidence': 0.0
         }
+@app.route('/api/analyze_image', methods=['POST'])
+def analyze_single_image():
+    """Analyze a single image using Gemini AI"""
+    try:
+        data = request.get_json()
+        filename = data.get('filename')
+        
+        if not filename:
+            return jsonify({'error': 'Filename is required'}), 400
+            
+        file_path = os.path.join(app.config['RESULTS_FOLDER'], filename)
+        
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'File not found'}), 404
+            
+        analysis_result = analyze_image_with_gemini(file_path)
+        
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'title': get_plot_title(filename),
+            'analysis': analysis_result
+        })
+        
+    except Exception as e:
+        logger.error(f"Error analyzing image: {str(e)}")
+        return jsonify({
+            'error': 'Analysis failed',
+            'details': str(e)
+        }), 500
+
 @app.route('/api/analyze_images', methods=['GET'])
 def analyze_images():
     """Analyze all images using Gemini AI (ORIGINAL - KEPT)"""
@@ -1312,4 +1364,4 @@ if __name__ == '__main__':
     logger.info("Features: Statistical Analysis + ML Prediction + Gemini AI Evaluation")
     logger.info("Matplotlib backend: Agg (non-interactive)")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

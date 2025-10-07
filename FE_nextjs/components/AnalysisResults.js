@@ -2,197 +2,381 @@ import axios from 'axios'
 import { useEffect, useState, useRef } from 'react'
 import { ChartBarIcon, SparklesIcon, XMarkIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 
-export default function AnalysisResults({ data, polling=false, setPolling }){
+export default function AnalysisResults({ data, polling = false, setPolling }) {
   const [selectedImage, setSelectedImage] = useState(null) // { filename, title }
-  const [images, setImages] = useState([]) // { filename, title }
+  const [images, setImages] = useState([]) // { filename, title, url?, analysis? }
   const [lastFetch, setLastFetch] = useState(null)
   const endRef = useRef(null)
   const sseRef = useRef(null)
+  const pollSessionStartedRef = useRef(false) // để chỉ clear images khi vừa bắt đầu polling
 
-  useEffect(()=>{
+  // ESC để đóng modal
+  useEffect(() => {
     const onKey = (e) => {
-      if(e.key === 'Escape') setSelectedImage(null)
+      if (e.key === 'Escape') setSelectedImage(null)
     }
     window.addEventListener('keydown', onKey)
-    return ()=> window.removeEventListener('keydown', onKey)
-  },[])
-
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   const openModal = (file) => setSelectedImage(file)
   const closeModal = () => setSelectedImage(null)
 
-  // Polling for new images when polling flag is true
-  useEffect(()=>{
+  // Polling danh sách ảnh
+  useEffect(() => {
     let timer = null
     let isMounted = true
+    let consecutiveEmptyResponses = 0
 
-    const fetchList = async ()=>{
-      try{
-        const res = await axios.get('/api/results/list', { timeout: 5000 })
-        if(!isMounted) return
-        if(res.data && res.data.images){
+    const fetchList = async () => {
+      try {
+        const res = await axios.get('http://localhost:5001/results/list', { timeout: 5000 })
+        if (!isMounted) return
+
+        if (res.data && res.data.images) {
           setLastFetch(Date.now())
-          // append new images preserving order
-          setImages(prev=>{
-            const exist = new Set(prev.map(i=>i.filename))
+
+          if (res.data.images.length > 0) {
+            consecutiveEmptyResponses = 0
+          } else {
+            consecutiveEmptyResponses++
+          }
+
+          setImages(prev => {
+            const exist = new Set(prev.map(i => i.filename))
             const combined = [...prev]
-            res.data.images.forEach(img=>{
-              if(!exist.has(img.filename)) combined.push(img)
+            res.data.images.forEach(img => {
+              if (!exist.has(img.filename)) {
+                combined.push(img)
+              }
             })
+
+            // nếu tất cả đã có analysis thì dừng polling
+            if (combined.length > 0 && combined.every(img => img.analysis)) {
+              console.log('All images have analysis, stopping polling')
+              setPolling?.(false)
+            }
+
             return combined
           })
+
+          // sau 3 lần rỗng thì dừng polling
+          if (consecutiveEmptyResponses >= 3) {
+            console.log('No new images after 3 attempts, stopping polling')
+            setPolling?.(false)
+          }
         }
-      }catch(e){
-        // ignore temporary errors
+      } catch (e) {
+        console.error('Error fetching image list:', e)
+        setPolling?.(false)
       }
     }
 
-    if(polling){
-      // clear previous images when a fresh polling session starts
+    if(polling) {
+      // Clear previous images when polling starts
       setImages([])
-      // initial fetch
-      fetchList()
-      timer = setInterval(fetchList, 2000)
+      console.log('Clearing all previous images before starting new polling session')
+
+      // Fetch list of images and analyze each one
+      const analyzeAllImages = async () => {
+        try {
+          // Fetch list of images
+          const res = await axios.get('http://127.0.0.1:5001/results/list', { timeout: 5000 })
+          if(res.data && res.data.images) {
+            console.log('Found images:', res.data.images.length)
+            
+            // Reset images state with new images
+            const newImages = res.data.images.map(img => ({
+              ...img,
+              analysis: null,
+              url: img.url || `http://127.0.0.1:5001/results/${img.filename}?t=${Date.now()}`
+            }))
+            setImages(newImages)
+
+            // Analyze images one by one
+            for (const img of newImages) {
+              try {
+                console.log('Analyzing image:', img.filename)
+                const analysisRes = await axios.post('http://127.0.0.1:5001/api/analyze_image', {
+                  filename: img.filename
+                })
+                
+                if (analysisRes.data && analysisRes.data.analysis) {
+                  console.log('Got analysis for:', img.filename, analysisRes.data.analysis)
+                  
+                  // Cập nhật state ngay lập tức cho ảnh này
+                  const updatedImage = { 
+                    ...img, 
+                    analysis: analysisRes.data.analysis
+                  }
+                  
+                  setImages(prev => {
+                    const updatedImages = [...prev]
+                    const index = updatedImages.findIndex(i => i.filename === img.filename)
+                    if (index !== -1) {
+                      updatedImages[index] = updatedImage
+                    }
+                    return updatedImages
+                  })
+                  
+                  // Đợi một chút để đảm bảo UI cập nhật
+                  await new Promise(resolve => setTimeout(resolve, 100))
+                }
+              } catch(e) {
+                console.error('Error analyzing image:', img.filename, e)
+              }
+            }
+          }
+        } catch(e) {
+          console.error('Error fetching image list:', e)
+          setPolling(false)
+        }
+      }
+
+      analyzeAllImages()
+      timer = setInterval(analyzeAllImages, 10000) // Increased interval to 10 seconds
     }
 
-    return ()=>{ isMounted=false; if(timer) clearInterval(timer) }
-  },[polling])
+    return () => {
+      isMounted = false
+      if (timer) clearInterval(timer)
+      // khi polling kết thúc, reset cờ phiên
+      if (!polling) {
+        pollSessionStartedRef.current = false
+      }
+    }
+  }, [polling, setPolling])
 
-  // Subscribe SSE for per-image Gemini analysis updates
-  useEffect(()=>{
+  // Hàm để phân tích một ảnh cụ thể
+  const analyzeImage = async (filename) => {
+    try {
+      console.log('Analyzing image:', filename)
+      const response = await axios.post('http://localhost:5001/api/analyze_image', {
+        filename: filename
+      })
+      if (response.data && response.data.analysis) {
+        setImages(prev => {
+          return prev.map(img => 
+            img.filename === filename 
+              ? { ...img, analysis: response.data.analysis }
+              : img
+          )
+        })
+      }
+    } catch (error) {
+      console.error('Error analyzing image:', filename, error)
+    }
+  }
+
+  // SSE nhận tiến độ phân tích từng ảnh
+  useEffect(() => {
     console.log('AnalysisResults useEffect triggered, polling:', polling)
-    if(!polling){
-      // stop previous SSE if any
-      if(sseRef.current){ 
+    if (!polling) {
+      if (sseRef.current) {
         console.log('Stopping previous SSE connection')
-        sseRef.current.close(); sseRef.current = null 
+        sseRef.current.close()
+        sseRef.current = null
       }
       return
     }
-    // close previous
-    if(sseRef.current){ 
-      console.log('Closing previous SSE connection')
-      sseRef.current.close(); sseRef.current = null 
+
+    if (sseRef.current) {
+      console.log('SSE connection already exists')
+      return
     }
 
-    // Open SSE via Next.js proxy
-    console.log('Opening new SSE connection to /api/analyze_images_stream')
-    const es = new EventSource('/api/analyze_images_stream')
+    // Phân tích tất cả ảnh hiện có ngay lập tức
+    const analyzeExistingImages = async () => {
+      for (const img of images) {
+        if (!img.analysis) {
+          try {
+            console.log('Analyzing existing image:', img.filename)
+            const analysisRes = await axios.post('http://localhost:5001/api/analyze_image', {
+              filename: img.filename
+            })
+            if (analysisRes.data && analysisRes.data.analysis) {
+              setImages(prev => 
+                prev.map(i => 
+                  i.filename === img.filename
+                    ? { ...i, analysis: analysisRes.data.analysis }
+                    : i
+                )
+              )
+            }
+          } catch (e) {
+            console.error('Error analyzing existing image:', img.filename, e)
+          }
+        }
+      }
+    }
+    analyzeExistingImages()
+
+    console.log('Opening new SSE connection to analyze_images_stream')
+    const es = new EventSource('http://127.0.0.1:5001/api/analyze_images_stream')
     sseRef.current = es
 
-    es.addEventListener('progress', (evt)=>{
-      console.log('SSE progress event received:', evt.data)
-      try{
+    es.addEventListener('progress', (evt) => {
+      console.log('SSE progress event received')
+      try {
         const payload = JSON.parse(evt.data)
-        console.log('Parsed SSE payload:', payload)
-        if(!payload?.image) return
-        // merge analysis into images by filename
-        setImages(prev=>{
-          const found = prev.find(i=>i.filename === payload.image)
-          if(found){
+        if (!payload?.image) return
+
+        setImages(prev => {
+          const found = prev.find(i => i.filename === payload.image)
+          if (found) {
             console.log('Updating existing image analysis:', payload.image)
-            return prev.map(i=> i.filename === payload.image ? { ...i, title: i.title || payload.title, analysis: payload.analysis || i.analysis } : i)
+            const updated = prev.map(i =>
+              i.filename === payload.image
+                ? {
+                    ...i,
+                    title: i.title || payload.title,
+                    analysis: payload.analysis ?? i.analysis,
+                    url: `http://127.0.0.1:5001/results/${i.filename}?t=${Date.now()}`
+                  }
+                : i
+            )
+
+            if (updated.length > 0 && updated.every(img => img.analysis)) {
+              console.log('All images have analysis, will stop polling')
+              setTimeout(() => setPolling?.(false), 1000)
+            }
+
+            return updated
           }
-          // if image chưa có trong list (trường hợp user mở chỉ SSE), thêm vào
+
           console.log('Adding new image analysis:', payload.image)
-          const appended = { filename: payload.image, title: payload.title, analysis: payload.analysis || null }
-          return [...prev, appended]
+          return [
+            ...prev,
+            {
+              filename: payload.image,
+              title: payload.title,
+              analysis: payload.analysis || null,
+            },
+          ]
         })
-      }catch(e){
+      } catch (e) {
         console.error('Error parsing SSE progress data:', e)
       }
     })
 
-    es.addEventListener('done', ()=>{
+    es.addEventListener('done', () => {
       console.log('SSE done event received')
-      // auto-close when done
       es.close()
       sseRef.current = null
+      setPolling?.(false)
     })
 
-    es.onerror = (error)=>{
+    es.onerror = (error) => {
       console.error('SSE connection error:', error)
-      // best-effort: close on error to avoid leak
-      try{ es.close() }catch{}
+      try {
+        es.close()
+        setPolling?.(false)
+      } catch {}
       sseRef.current = null
     }
 
-    es.onopen = ()=>{
+    es.onopen = () => {
       console.log('SSE connection opened successfully')
     }
 
-    return ()=>{ try{ es.close() }catch{} sseRef.current = null }
-  },[polling])
+    return () => {
+      if (sseRef.current) {
+        try {
+          sseRef.current.close()
+        } catch {}
+        sseRef.current = null
+      }
+    }
+  }, [polling, setPolling])
 
-  // Auto-scroll to newest image when images array grows
-  useEffect(()=>{
-    if(endRef.current){
+  // Auto scroll xuống cuối khi thêm ảnh mới
+  useEffect(() => {
+    if (endRef.current) {
       endRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
     }
-  },[images.length])
+  }, [images.length])
 
-  // when data arrives (final analysis response), merge any plots into images list as well
-  useEffect(()=>{
-    if(data?.analysis_plots){
-      setImages(prev=>{
-        const exist = new Set(prev.map(i=>i.filename))
-        const combined = [...prev]
-        data.analysis_plots.forEach(p=>{ if(!exist.has(p.filename)) combined.push({ filename: p.filename, title: p.title }) })
-        return combined
+  // Khi nhận data mới (kết quả final), reset images theo data
+  useEffect(() => {
+    if (data?.analysis_plots) {
+      // Giữ lại analysis cũ nếu có
+      setImages(prev => {
+        const newImages = data.analysis_plots.map(p => {
+          const existingImage = prev.find(img => img.filename === p.filename)
+          return {
+            filename: p.filename,
+            title: p.title,
+            url: p.url || `http://localhost:5001/results/${p.filename}?t=${Date.now()}`,
+            analysis: existingImage?.analysis || null
+          }
+        })
+        console.log('Reset images with new analysis plots:', newImages)
+        return newImages
       })
     }
-  },[data])
+  }, [data])
 
   return (
     <div className="bg-white/3 border border-white/5 rounded-xl p-6 mt-4">
       <div className="flex items-start justify-between">
         <div>
           <h3 className="text-lg font-semibold">Kết quả phân tích</h3>
-          <div className="text-sm text-slate-400 mt-1">Số mẫu: <strong className="text-slate-100">{data?.sample_count ?? '—'}</strong> • Features số: <strong className="text-slate-100">{data?.feature_count ?? '—'}</strong></div>
+          <div className="text-sm text-slate-400 mt-1">
+            Số mẫu: <strong className="text-slate-100">{data?.sample_count ?? '—'}</strong> • Features số:{' '}
+            <strong className="text-slate-100">{data?.feature_count ?? '—'}</strong>
+          </div>
         </div>
         <div className="flex gap-3">
           <div className="text-sm text-slate-400">{data?.timestamp ? new Date(data.timestamp).toLocaleString() : ''}</div>
         </div>
       </div>
 
-      
-
       <div className="mt-4">
-        <h4 className="font-medium text-sm text-slate-200 flex items-center gap-2"><SparklesIcon className="w-4 h-4 text-accent"/>Tóm tắt thống kê</h4>
-          <div className="text-sm text-slate-300 mt-2 max-h-56 overflow-auto p-2 bg-black/20 rounded-md">
-          <pre className="whitespace-pre-wrap text-xs">{JSON.stringify(data?.statistical_analysis?.summary || data?.statistical_analysis || {}, null, 2)}</pre>
+        <h4 className="font-medium text-sm text-slate-200 flex items-center gap-2">
+          <SparklesIcon className="w-4 h-4 text-accent" />
+          Tóm tắt thống kê
+        </h4>
+        <div className="text-sm text-slate-300 mt-2 max-h-56 overflow-auto p-2 bg-black/20 rounded-md">
+          <pre className="whitespace-pre-wrap text-xs">
+            {JSON.stringify(data?.statistical_analysis?.summary || data?.statistical_analysis || {}, null, 2)}
+          </pre>
         </div>
       </div>
 
       <div className="mt-4">
         <div className="flex items-center justify-between mb-4">
-          <h4 className="font-medium text-sm text-slate-200 flex items-center gap-2"><ChartBarIcon className="w-4 h-4 text-accent"/>Biểu đồ</h4>
-          {images.length > 0 && !images.some(img => img.analysis) && (
-            <button 
-              onClick={() => {
-                console.log('Manual SSE trigger clicked')
-                setPolling(true)
-              }}
-              className="bg-accent text-[#021124] px-3 py-1 rounded text-sm font-medium"
-            >
-              Phân tích Gemini AI
-            </button>
-          )}
+          <h4 className="font-medium text-sm text-slate-200 flex items-center gap-2">
+            <ChartBarIcon className="w-4 h-4 text-accent" />
+            Biểu đồ
+          </h4>
         </div>
+
         <div className="flex flex-col gap-6 mt-4">
-          {images && images.length>0 ? (
-            images.map((p)=> (
+          {images && images.length > 0 ? (
+            images.map((p) => (
               <div key={p.filename} className="w-full">
-                <img src={`/api/results/${p.filename}`} alt={p.title} className="w-full h-[520px] object-contain rounded-md border border-white/5" />
+                <img
+                  src={p.url || `http://localhost:5001/results/${p.filename}?t=${Date.now()}`}
+                  alt={p.title}
+                  className="w-full h-[520px] object-contain rounded-md border border-white/5"
+                  onClick={() => openModal(p)}
+                  onError={(e) => {
+                    console.error('Error loading image:', p.filename)
+                    e.currentTarget.src = `http://localhost:5001/results/${p.filename}?t=${Date.now()}`
+                  }}
+                />
                 <div className="text-sm text-slate-300 mt-2">{p.title}</div>
-                {/* Gemini AI analysis (if available) */}
+
+                {/* Gemini AI analysis (nếu có) */}
                 <div className="mt-2 p-3 bg-black/20 rounded text-sm text-slate-300">
                   {p.analysis ? (
                     <>
                       <div className="font-medium text-slate-100">Gemini AI đánh giá</div>
                       <div className="mt-1 whitespace-pre-wrap">{p.analysis.evaluation}</div>
                       {typeof p.analysis.confidence !== 'undefined' && (
-                        <div className="text-xs text-slate-400 mt-2">Độ tin cậy: {(p.analysis.confidence * 100).toFixed(1)}%</div>
+                        <div className="text-xs text-slate-400 mt-2">
+                          Độ tin cậy: {(Number(p.analysis.confidence) * 100).toFixed(1)}%
+                        </div>
                       )}
                     </>
                   ) : (
@@ -201,29 +385,51 @@ export default function AnalysisResults({ data, polling=false, setPolling }){
                 </div>
               </div>
             ))
-          ) : <div className="text-sm text-slate-400">Không có biểu đồ để hiển thị</div>}
+          ) : (
+            <div className="text-sm text-slate-400">Không có biểu đồ để hiển thị</div>
+          )}
           <div ref={endRef} />
         </div>
       </div>
 
       {/* Modal / Lightbox */}
       {selectedImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6" onClick={(e)=>{ if(e.target === e.currentTarget) closeModal() }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeModal()
+          }}
+        >
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
           <div className="relative max-w-6xl w-full z-10">
             <div className="flex items-start justify-end gap-2 mb-3">
-              <a href={`/api/results/${selectedImage.filename}`} download className="inline-flex items-center gap-2 bg-white/6 text-slate-100 px-3 py-2 rounded-md hover:bg-white/10"><ArrowDownTrayIcon className="w-5 h-5"/>Tải về</a>
-              <button onClick={closeModal} className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-white/6 hover:bg-white/10"><XMarkIcon className="w-5 h-5 text-slate-100"/></button>
+              <a
+                href={`http://localhost:5001/results/${selectedImage.filename}`}
+                download
+                className="inline-flex items-center gap-2 bg-white/6 text-slate-100 px-3 py-2 rounded-md hover:bg-white/10"
+              >
+                <ArrowDownTrayIcon className="w-5 h-5" />
+                Tải về
+              </a>
+              <button
+                onClick={closeModal}
+                className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-white/6 hover:bg-white/10"
+              >
+                <XMarkIcon className="w-5 h-5 text-slate-100" />
+              </button>
             </div>
 
             <div className="bg-transparent p-4 rounded">
-              <img src={`/api/results/${selectedImage.filename}`} alt={selectedImage.title} className="w-full max-h-[80vh] object-contain rounded-md mx-auto" />
+              <img
+                src={`http://localhost:5001/results/${selectedImage.filename}`}
+                alt={selectedImage.title}
+                className="w-full max-h-[80vh] object-contain rounded-md mx-auto"
+              />
               <div className="text-sm text-slate-300 mt-3 text-center">{selectedImage.title}</div>
             </div>
           </div>
         </div>
       )}
-
     </div>
   )
 }

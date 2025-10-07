@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).end()
   }
 
-  const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:5000'
+  const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:5001'
   
   try {
     // Proxy the SSE stream to the backend
