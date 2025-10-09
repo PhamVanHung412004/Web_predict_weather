@@ -370,9 +370,29 @@ export default function AnalysisResults({ data, polling = false, setPolling }) {
               .map((p, _idx) => ({ ...p, _idx }))
               .sort((a, b) => {
                 const score = (f) => {
-                  if (f?.includes('ml_residual_plot')) return -1 // always last
-                  if (f?.includes('ml_elbow_method')) return 3 // first
-                  if (f?.includes('ml_pca_clusters')) return 2 // then KMeans clusters
+                  // Statistical plots first
+                  if (f?.includes('phan_phoi_chi_so')) return 20
+                  if (f?.includes('ma_tran_tuong_quan')) return 19
+                  if (f?.includes('xu_huong_thoi_gian')) return 18
+                  if (f?.includes('gia_tri_bat_thuong')) return 17
+                  if (f?.includes('phan_loai_aqi')) return 16
+                  if (f?.includes('so_sanh_chi_so')) return 15
+                  
+                  // Random Forest group
+                  if (f?.includes('ml_predicted_vs_actual') && !f?.includes('xgb')) return 13
+                  if (f?.includes('ml_feature_importance') && !f?.includes('xgb')) return 12
+                  if (f?.includes('ml_residual_plot') && !f?.includes('xgb')) return 11
+                  
+                  // XGBoost group
+                  if (f?.includes('xgb_predicted_vs_actual')) return 10
+                  if (f?.includes('xgb_feature_importance')) return 9
+                  if (f?.includes('xgb_residual_plot')) return 8
+                  
+                  // Clustering and PCA group - Elbow method first, then KMeans
+                  if (f?.includes('ml_elbow_method')) return 7
+                  if (f?.includes('ml_pca_clusters')) return 6
+                  if (f?.includes('ml_anomaly_detection')) return 5
+                  
                   return 0 // others keep original relative order
                 }
                 const sa = score(a.filename)
@@ -398,7 +418,7 @@ export default function AnalysisResults({ data, polling = false, setPolling }) {
                 <div className="mt-2 p-3 bg-black/20 rounded text-sm text-slate-300">
                   {p.analysis ? (
                     <>
-                      <div className="font-medium text-slate-100">Gemini AI đánh giá</div>
+                      <div className="font-medium text-slate-100">Đánh giá </div>
                       <div className="mt-1 whitespace-pre-wrap">
                         {typeof p.analysis === 'string' ? p.analysis : (p.analysis?.evaluation || '')}
                       </div>
@@ -409,7 +429,7 @@ export default function AnalysisResults({ data, polling = false, setPolling }) {
                       )}
                     </>
                   ) : (
-                    <div className="text-slate-400">Đang chờ phân tích bởi Gemini AI...</div>
+                    <div className="text-slate-400">Đánh giá</div>
                   )}
                 </div>
               </div>

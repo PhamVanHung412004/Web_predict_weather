@@ -26,6 +26,11 @@ except Exception:
 from sklearn.ensemble import RandomForestRegressor, IsolationForest
 from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+try:
+    import xgboost as xgb
+    _XGB_AVAILABLE = True
+except ImportError:
+    _XGB_AVAILABLE = False
 from PIL import Image
 import cv2
 from pathlib import Path
@@ -246,6 +251,60 @@ def train_random_forest(X_train, y_train, X_test, y_test):
     
     return model, metrics, feature_importance
 
+def train_xgboost(X_train, y_train, X_test, y_test):
+    """Train XGBoost Regressor"""
+    if not _XGB_AVAILABLE:
+        raise ImportError("XGBoost is required. Please install 'xgboost'.")
+    
+    logger.info("Training XGBoost model...")
+    
+    model = xgb.XGBRegressor(
+        n_estimators=200,
+        max_depth=6,
+        learning_rate=0.1,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42,
+        n_jobs=-1,
+        early_stopping_rounds=10,
+        eval_metric='rmse'
+    )
+    
+    # Fit with early stopping
+    model.fit(
+        X_train, y_train,
+        eval_set=[(X_train, y_train), (X_test, y_test)],
+        verbose=False
+    )
+    
+    # Predictions
+    y_pred_train = model.predict(X_train)
+    y_pred_test = model.predict(X_test)
+    
+    # Metrics
+    metrics = {
+        'train': {
+            'rmse': float(np.sqrt(mean_squared_error(y_train, y_pred_train))),
+            'mae': float(mean_absolute_error(y_train, y_pred_train)),
+            'r2': float(r2_score(y_train, y_pred_train))
+        },
+        'test': {
+            'rmse': float(np.sqrt(mean_squared_error(y_test, y_pred_test))),
+            'mae': float(mean_absolute_error(y_test, y_pred_test)),
+            'r2': float(r2_score(y_test, y_pred_test))
+        }
+    }
+    
+    # Feature importance
+    feature_importance = pd.DataFrame({
+        'feature': X_train.columns,
+        'importance': model.feature_importances_
+    }).sort_values('importance', ascending=False)
+    
+    logger.info(f"XGBoost trained. Test R²: {metrics['test']['r2']:.4f}")
+    
+    return model, metrics, feature_importance
+
 def apply_pca(X, n_components=2):
     """Apply PCA for dimensionality reduction"""
     logger.info(f"Applying PCA with {n_components} components...")
@@ -335,7 +394,77 @@ def detect_anomalies_isolation_forest(X, contamination=0.05):
 
 # ==================== ML VISUALIZATIONS ====================
 
-def plot_ml_results(df, model, X_test, y_test, y_pred, feature_importance, 
+def plot_xgboost_results(X_test, y_test, xgb_model, xgb_metrics, xgb_feature_importance, timestamp):
+    """Generate XGBoost-specific visualizations"""
+    plot_paths = []
+    
+    try:
+        # XGBoost predictions
+        xgb_pred = xgb_model.predict(X_test)
+        
+        # 1. XGBoost Predicted vs Actual
+        plt.figure(figsize=(16, 10))
+        sample_size = min(100, len(y_test))
+        x_axis = range(sample_size)
+        
+        plt.plot(x_axis, y_test[:sample_size], label='Actual', color='#2E86AB', linewidth=2, marker='o', markersize=4)
+        plt.plot(x_axis, xgb_pred[:sample_size], label='XGBoost Predicted', color='#E74C3C', linewidth=2, marker='s', markersize=4)
+        plt.fill_between(x_axis, y_test[:sample_size], xgb_pred[:sample_size], alpha=0.3, color='#F39C12')
+        
+        plt.title('XGBoost: Dự báo PM2.5 vs Thực tế', fontsize=16, fontweight='bold')
+        plt.xlabel('Mẫu thời gian', fontsize=12)
+        plt.ylabel('Nồng độ PM2.5 (µg/m³)', fontsize=12)
+        plt.legend(fontsize=11)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        
+        plot_path = os.path.join(app.config['RESULTS_FOLDER'], f"{timestamp}_xgb_predicted_vs_actual.png")
+        plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        plot_paths.append(plot_path)
+        
+        # 2. XGBoost Feature Importance
+        plt.figure(figsize=(14, 10))
+        top_features = xgb_feature_importance.head(15)
+        colors = plt.cm.plasma(np.linspace(0, 1, len(top_features)))
+        
+        plt.barh(top_features['feature'], top_features['importance'], color=colors)
+        plt.xlabel('Mức độ quan trọng', fontsize=12)
+        plt.title('Top 15 Features quan trọng nhất (XGBoost)', fontsize=16, fontweight='bold')
+        plt.gca().invert_yaxis()
+        plt.tight_layout()
+        
+        plot_path = os.path.join(app.config['RESULTS_FOLDER'], f"{timestamp}_xgb_feature_importance.png")
+        plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        plot_paths.append(plot_path)
+        
+        # 3. XGBoost Residual Plot
+        plt.figure(figsize=(14, 10))
+        xgb_residuals = y_test - xgb_pred
+        
+        plt.scatter(xgb_pred, xgb_residuals, alpha=0.6, s=50, color='#E74C3C', edgecolors='black', linewidth=0.5)
+        plt.axhline(y=0, color='red', linestyle='--', linewidth=2)
+        plt.xlabel('Giá trị dự đoán XGBoost', fontsize=12)
+        plt.ylabel('Residuals (Actual - Predicted)', fontsize=12)
+        plt.title('XGBoost: Phân tích Residual', fontsize=16, fontweight='bold')
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        
+        plot_path = os.path.join(app.config['RESULTS_FOLDER'], f"{timestamp}_xgb_residual_plot.png")
+        plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        plot_paths.append(plot_path)
+        
+        return plot_paths
+        
+    except Exception as e:
+        logger.error(f"Error generating XGBoost plots: {str(e)}")
+        return plot_paths
+    finally:
+        cleanup_matplotlib()
+
+def plot_ml_results(df, rf_model, X_test, y_test, y_pred, feature_importance, 
                     pca_result, clusters, anomaly_labels, timestamp):
     """Generate ML-specific visualizations"""
     plot_paths = []
@@ -423,15 +552,16 @@ def plot_ml_results(df, model, X_test, y_test, y_pred, feature_importance,
             plt.close()
             plot_paths.append(plot_path)
         
-        # 5. Residual Plot
+        # 5. Residual Plot (Random Forest specific)
         plt.figure(figsize=(14, 10))
-        residuals = y_test - y_pred
+        rf_pred = rf_model.predict(X_test)
+        rf_residuals = y_test - rf_pred
         
-        plt.scatter(y_pred, residuals, alpha=0.6, s=50, color='#2E86AB', edgecolors='black', linewidth=0.5)
+        plt.scatter(rf_pred, rf_residuals, alpha=0.6, s=50, color='#2E86AB', edgecolors='black', linewidth=0.5)
         plt.axhline(y=0, color='red', linestyle='--', linewidth=2)
-        plt.xlabel('Giá trị dự đoán', fontsize=12)
+        plt.xlabel('Giá trị dự đoán Random Forest', fontsize=12)
         plt.ylabel('Residuals (Actual - Predicted)', fontsize=12)
-        plt.title('Phân tích Residual: Đánh giá độ chính xác mô hình', fontsize=16, fontweight='bold')
+        plt.title('Random Forest: Phân tích Residual', fontsize=16, fontweight='bold')
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         
@@ -863,18 +993,41 @@ def analyze_csv():
                     logger.info(f"Train size: {len(X_train)}, Test size: {len(X_test)}")
                     
                     # Train Random Forest
-                    rf_model, rf_metrics, feature_importance = train_random_forest(
+                    rf_model, rf_metrics, rf_feature_importance = train_random_forest(
                         X_train, y_train, X_test, y_test
                     )
                     
-                    # Save model
-                    model_path = os.path.join(app.config['MODELS_FOLDER'], f"{timestamp}_rf_pm25.joblib")
+                    # Train XGBoost
+                    xgb_model = None
+                    xgb_metrics = None
+                    xgb_feature_importance = None
+                    if _XGB_AVAILABLE:
+                        try:
+                            xgb_model, xgb_metrics, xgb_feature_importance = train_xgboost(
+                                X_train, y_train, X_test, y_test
+                            )
+                        except Exception as e:
+                            logger.warning(f"XGBoost training failed: {str(e)}")
+                    
+                    # Save models
+                    rf_model_path = os.path.join(app.config['MODELS_FOLDER'], f"{timestamp}_rf_pm25.joblib")
                     joblib.dump({
                         'model': rf_model,
                         'feature_columns': feature_cols,
-                        'target_column': pm25_col
-                    }, model_path)
-                    logger.info(f"Model saved to {model_path}")
+                        'target_column': pm25_col,
+                        'model_type': 'random_forest'
+                    }, rf_model_path)
+                    logger.info(f"Random Forest model saved to {rf_model_path}")
+                    
+                    if xgb_model:
+                        xgb_model_path = os.path.join(app.config['MODELS_FOLDER'], f"{timestamp}_xgb_pm25.joblib")
+                        joblib.dump({
+                            'model': xgb_model,
+                            'feature_columns': feature_cols,
+                            'target_column': pm25_col,
+                            'model_type': 'xgboost'
+                        }, xgb_model_path)
+                        logger.info(f"XGBoost model saved to {xgb_model_path}")
                     
                     # PCA
                     X_pca, pca_model, pca_scaler, explained_var = apply_pca(X, n_components=2)
@@ -886,8 +1039,10 @@ def analyze_csv():
                     # Anomaly Detection
                     anomaly_labels, anomaly_scores, iso_forest = detect_anomalies_isolation_forest(X, contamination=0.05)
                     
-                    # Generate predictions
-                    y_pred = rf_model.predict(X_test)
+                    # Generate predictions (use best model)
+                    best_model = xgb_model if xgb_model and xgb_metrics['test']['r2'] > rf_metrics['test']['r2'] else rf_model
+                    y_pred = best_model.predict(X_test)
+                    feature_importance = xgb_feature_importance if xgb_model and xgb_metrics['test']['r2'] > rf_metrics['test']['r2'] else rf_feature_importance
                     
                     # Generate ML visualizations
                     ml_plot_paths = plot_ml_results(
@@ -897,11 +1052,32 @@ def analyze_csv():
                     if elbow_plot_path:
                         ml_plot_paths.append(elbow_plot_path)
                     
+                    # Generate XGBoost visualizations if available
+                    if xgb_model:
+                        try:
+                            xgb_plot_paths = plot_xgboost_results(
+                                X_test, y_test, xgb_model, xgb_metrics, xgb_feature_importance, timestamp
+                            )
+                            ml_plot_paths.extend(xgb_plot_paths)
+                            logger.info(f"Generated {len(xgb_plot_paths)} XGBoost plots")
+                        except Exception as e:
+                            logger.error(f"Error generating XGBoost plots: {str(e)}")
+                    
                     # Prepare ML results
                     ml_results = {
                         'random_forest': {
                             'metrics': rf_metrics,
-                            'feature_importance': feature_importance.head(10).to_dict('records')
+                            'feature_importance': rf_feature_importance.head(10).to_dict('records')
+                        },
+                        'xgboost': {
+                            'available': xgb_model is not None,
+                            'metrics': xgb_metrics if xgb_model else None,
+                            'feature_importance': xgb_feature_importance.head(10).to_dict('records') if xgb_model else None
+                        },
+                        'model_comparison': {
+                            'best_model': 'XGBoost' if xgb_model and xgb_metrics['test']['r2'] > rf_metrics['test']['r2'] else 'Random Forest',
+                            'rf_r2': rf_metrics['test']['r2'],
+                            'xgb_r2': xgb_metrics['test']['r2'] if xgb_model else None
                         },
                         'pca': {
                             'explained_variance': [float(v) for v in explained_var],
@@ -1050,9 +1226,15 @@ def get_plot_title(filename):
     elif 'ml_anomaly_detection' in filename:
         return '[ML] Phát hiện bất thường (Isolation Forest)'
     elif 'ml_residual_plot' in filename:
-        return '[ML] Phân tích Residual'
+        return '[Random Forest] Phân tích Residual'
     elif 'ml_elbow_method' in filename:
         return '[ML] Elbow method: Chọn số cụm tối ưu'
+    elif 'xgb_predicted_vs_actual' in filename:
+        return '[XGBoost] Dự báo PM2.5: Thực tế vs Dự đoán'
+    elif 'xgb_feature_importance' in filename:
+        return '[XGBoost] Độ quan trọng của Features'
+    elif 'xgb_residual_plot' in filename:
+        return '[XGBoost] Phân tích Residual'
     else:
         return 'Biểu đồ phân tích'
 
