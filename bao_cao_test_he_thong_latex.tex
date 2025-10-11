@@ -1,0 +1,866 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnam]{babel}
+\usepackage[top=2cm, bottom=2cm, left=2.5cm, right=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+
+% Định dạng header và footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Báo cáo Test Hệ thống}
+\fancyhead[R]{\thepage}
+\fancyfoot[C]{Phân tích Dữ liệu Thời tiết}
+
+% Định dạng tiêu đề
+\titleformat{\section}{\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{1em}{}
+
+% Định nghĩa màu
+\definecolor{successcolor}{RGB}{0,128,0}
+\definecolor{infocolor}{RGB}{0,102,204}
+\definecolor{warningcolor}{RGB}{255,165,0}
+
+% Box cho đánh giá
+\newtcolorbox{aibox}[1][]{
+    colback=blue!5!white,
+    colframe=blue!75!black,
+    title=#1,
+    fonttitle=\bfseries
+}
+
+\begin{document}
+
+% Trang bìa
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    
+    {\Huge\bfseries BÁO CÁO TEST HỆ THỐNG\\[0.5cm]
+    PHÂN TÍCH DỮ LIỆU THỜI TIẾT\\[2cm]}
+    
+    {\Large Thời gian tạo báo cáo:\\[0.3cm]
+    \textbf{11/10/2025 11:50:40}\\[3cm]}
+    
+    {\large
+    \begin{tabular}{ll}
+        \textbf{Tổng số dataset test:} & 3\\
+        \textbf{Test thành công:} & \textcolor{successcolor}{3}\\
+        \textbf{Test thất bại:} & 0\\
+    \end{tabular}
+    }
+    
+    \vfill
+    {\large Hệ thống Phân tích và Dự báo\\[0.2cm]
+    Chất lượng Không khí PM2.5}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% Tổng quan
+\section{TỔNG QUAN}
+
+Báo cáo này trình bày kết quả test hệ thống phân tích dữ liệu thời tiết với 3 dataset khác nhau:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Tổng số dataset test:} 3
+    \item \textbf{Test thành công:} \textcolor{successcolor}{3}
+    \item \textbf{Test thất bại:} 0
+    \item \textbf{Tỷ lệ thành công:} 100\%
+\end{itemize}
+
+\section{CHI TIẾT KẾT QUẢ TỪNG DATASET}
+
+\subsection{Dataset 1: comb\_PM25\_Hanoi\_2018\_sm}
+
+\subsubsection{Thông tin cơ bản}
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Thuộc tính} & \textbf{Giá trị}\\
+\midrule
+Đường dẫn & comb\_PM25\_Hanoi\_2018\_sm.csv\\
+Kích thước file & 1.07 MB\\
+Trạng thái & \textcolor{successcolor}{Thành công}\\
+Số mẫu & 8,116\\
+Số features & 11\\
+Thời gian phân tích & 2025-10-11T11:49:36\\
+\midrule
+\multicolumn{2}{c}{\textbf{Thống kê mô tả}}\\
+\midrule
+Data quality & Tốt\\
+Missing data & 0.0000\%\\
+Total features & 11\\
+Total samples & 8,116\\
+\bottomrule
+\end{tabular}
+\caption{Thông tin Dataset 1}
+\end{table}
+
+\subsubsection{Biểu đồ được tạo (14 plots)}
+
+% BIỂU ĐỒ 1
+\paragraph{1. Phân phối các chỉ số ô nhiễm}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{results_comb_PM25_Hanoi_2018_sm_20251011_121424/20251011_121424_phan_phoi_chi_so.png}
+\caption{Phân phối các chỉ số ô nhiễm}
+\end{figure}
+
+\begin{aibox}[Đánh giá AI - Độ tin cậy: 80\%]
+\textbf{�� 1. Mô tả ngắn gọn:}\\
+Ảnh hiển thị phân phối tần suất của 4 chỉ số ô nhiễm không khí: Bụi mịn PM2.5, T2MDEW, T2M và PS. Mỗi biểu đồ là một histogram thể hiện tần suất xuất hiện của các giá trị khác nhau cho từng chỉ số.
+
+\textbf{�� 2. Phân tích chuyên sâu:}
+\begin{itemize}
+    \item \textbf{Bụi mịn PM2.5:} Phân phối lệch phải rõ ràng, tập trung nhiều ở giá trị thấp và giảm dần về phía giá trị cao. Điều này cho thấy phần lớn thời gian, nồng độ bụi mịn PM2.5 ở mức thấp, nhưng vẫn có những thời điểm nồng độ này tăng cao đáng kể.
+    \item \textbf{T2MDEW:} Phân phối có xu hướng tăng dần, đạt đỉnh ở khoảng giá trị cao nhất. Dữ liệu cho thấy giá trị T2MDEW có xu hướng tập trung ở mức cao.
+    \item \textbf{T2M:} Phân phối gần giống hình chuông (bell-shaped), nhưng lệch trái. Giá trị T2M tập trung nhiều ở khoảng giữa, giảm dần về hai đầu.
+    \item \textbf{PS:} Phân phối hai đỉnh (bimodal), cho thấy có hai nhóm giá trị phổ biến. Điều này có thể phản ánh sự thay đổi theo mùa hoặc theo các yếu tố môi trường khác.
+\end{itemize}
+
+\textbf{�� 3. Nhận định \& ý nghĩa:}
+\begin{itemize}
+    \item PM2.5: Việc phân phối lệch phải cho thấy cần quan tâm đến các đợt ô nhiễm PM2.5 cao điểm.
+    \item T2MDEW: Giá trị T2MDEW cao có thể liên quan đến độ ẩm và nhiệt độ, cần xem xét mối tương quan với các yếu tố thời tiết khác.
+    \item T2M: Phân phối của T2M cho thấy nhiệt độ có xu hướng tập trung ở một khoảng nhất định.
+    \item PS: Phân phối hai đỉnh của PS cho thấy áp suất có thể thay đổi theo hai trạng thái khác nhau.
+\end{itemize}
+
+\textbf{�� 4. Đề xuất:}
+\begin{itemize}
+    \item Phân tích tương quan: Nghiên cứu mối tương quan giữa các chỉ số ô nhiễm này để hiểu rõ hơn về mối quan hệ và ảnh hưởng lẫn nhau.
+    \item Phân tích theo thời gian: Xem xét sự thay đổi của các chỉ số này theo thời gian để xác định các yếu tố gây ra sự biến động.
+    \item Phân tích hồi quy: Xây dựng mô hình hồi quy để dự đoán nồng độ PM2.5 dựa trên các yếu tố khác như T2MDEW, T2M và PS.
+    \item Kiểm tra ngoại lệ: Xác định và phân tích các giá trị ngoại lệ (outliers) để hiểu rõ nguyên nhân và tác động của chúng.
+\end{itemize}
+\end{aibox}
+
+% BIỂU ĐỒ 2
+\paragraph{2. Ma trận tương quan}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{results_comb_PM25_Hanoi_2018_sm_20251011_121424/20251011_121424_ma_tran_tuong_quan.png}
+\caption{Ma trận tương quan}
+\end{figure}
+
+\begin{aibox}[Đánh giá AI - Độ tin cậy: 80\%]
+\textbf{�� 1. Mô tả ngắn gọn:}\\
+Biểu đồ là một ma trận tương quan, thể hiện mối tương quan giữa các chỉ số ô nhiễm khác nhau (Bụi mịn PM2.5, T2MDEW, T2M, PS, TQV, TQL, H1000, HLML, RHOA, CIG, WS). Các giá trị trong ma trận cho biết mức độ và hướng của mối tương quan (dương hoặc âm) giữa các cặp biến.
+
+\textbf{�� 2. Phân tích chuyên sâu:}
+\begin{itemize}
+    \item \textbf{Tương quan mạnh:}
+    \begin{itemize}
+        \item T2MDEW, T2M và HLML có tương quan dương rất mạnh với nhau (0.88, 0.94, 0.98). Điều này cho thấy chúng có thể liên quan đến cùng một nguồn hoặc quá trình ô nhiễm.
+        \item PS và RHOA có tương quan dương mạnh (0.92).
+        \item PS và H1000 có tương quan dương mạnh (1.0).
+        \item HLML và RHOA có tương quan âm rất mạnh (-0.99).
+    \end{itemize}
+    \item \textbf{Tương quan yếu:}
+    \begin{itemize}
+        \item CIG và WS có tương quan yếu với hầu hết các biến khác, cho thấy chúng có thể ít liên quan đến các nguồn ô nhiễm chung.
+        \item TQL có tương quan yếu với hầu hết các biến khác.
+    \end{itemize}
+    \item \textbf{Tương quan âm:}
+    \begin{itemize}
+        \item Bụi mịn PM2.5 có tương quan âm vừa phải với T2MDEW, T2M, TQV.
+        \item PS có tương quan âm với T2MDEW, T2M, TQV.
+    \end{itemize}
+\end{itemize}
+
+\textbf{�� 3. Nhận định \& ý nghĩa:}\\
+Có những nhóm biến có tương quan chặt chẽ với nhau, có thể chỉ ra các nguồn hoặc quá trình ô nhiễm chung. Việc xác định các mối tương quan này có thể giúp các nhà quản lý môi trường tập trung vào các nguồn ô nhiễm quan trọng nhất.
+
+\textbf{�� 4. Đề xuất:}
+\begin{itemize}
+    \item Phân tích hồi quy: Xác định các yếu tố dự báo chính cho nồng độ bụi mịn PM2.5.
+    \item Phân tích thành phần chính (PCA): Giảm số lượng biến và xác định các thành phần chính.
+    \item Phân tích chuỗi thời gian: Nghiên cứu sự thay đổi của các mối tương quan theo thời gian.
+    \item Kiểm chứng bằng dữ liệu khác: So sánh kết quả với dữ liệu từ các nguồn khác.
+\end{itemize}
+\end{aibox}
+
+% BIỂU ĐỒ 3
+\paragraph{3. Xu hướng thời gian}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{results_comb_PM25_Hanoi_2018_sm_20251011_121424/20251011_121424_xu_huong_thoi_gian.png}
+\caption{Xu hướng thời gian}
+\end{figure}
+
+\begin{aibox}[Đánh giá AI - Độ tin cậy: 80\%]
+\textbf{�� 1. Mô tả ngắn gọn:}\\
+Biểu đồ đường này thể hiện xu hướng thay đổi của năm chỉ số ô nhiễm (Bụi mịn PM2.5, T2MDEW, T2M, PS, TQV) theo thời gian (được đo bằng "mẫu" trên trục hoành).
+
+\textbf{�� 2. Phân tích chuyên sâu:}
+\begin{itemize}
+    \item \textbf{PS:} Chỉ số PS có giá trị rất cao, ổn định và gần như không đổi trong suốt khoảng thời gian được khảo sát, dao động quanh mức 100,000.
+    \item \textbf{Các chỉ số khác:} Bụi mịn PM2.5, T2MDEW, T2M, TQV có giá trị rất thấp và ít biến động so với PS. Trong đó chỉ có TQV là được thể hiện rõ trên biểu đồ.
+\end{itemize}
+
+\textbf{�� 3. Nhận định \& ý nghĩa:}
+\begin{itemize}
+    \item Sự khác biệt lớn giữa PS và các chỉ số khác cho thấy có thể PS là yếu tố ô nhiễm chiếm ưu thế hoặc có đơn vị đo lường khác biệt.
+    \item Sự ổn định của PS: Giá trị của PS gần như không đổi theo thời gian, cho thấy nguồn phát thải hoặc yếu tố ảnh hưởng đến PS có thể là ổn định.
+    \item Biến động nhỏ của các chỉ số còn lại: Sự biến động nhỏ có thể cho thấy chúng ít chịu ảnh hưởng bởi các yếu tố thời gian.
+\end{itemize}
+
+\textbf{�� 4. Đề xuất:}
+\begin{itemize}
+    \item Kiểm tra lại dữ liệu: Cần kiểm tra lại dữ liệu và đơn vị đo của từng chỉ số, đặc biệt là PS.
+    \item Phân tích sâu hơn về PS: Nếu PS là yếu tố ô nhiễm chủ đạo, cần phân tích sâu hơn về nguồn gốc, các yếu tố ảnh hưởng và tác động của nó.
+    \item Chuẩn hóa dữ liệu: Có thể cần chuẩn hóa dữ liệu để đưa các chỉ số về cùng một thang đo.
+    \item Phân tích theo mùa/tháng: Nếu có dữ liệu trong thời gian dài hơn, có thể phân tích xu hướng theo mùa hoặc theo tháng.
+\end{itemize}
+\end{aibox}
+
+% BIỂU ĐỒ 4
+\paragraph{4. Phân tích giá trị bất thường}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{results_comb_PM25_Hanoi_2018_sm_20251011_121424/20251011_121424_gia_tri_bat_thuong.png}
+\caption{Phân tích giá trị bất thường}
+\end{figure}
+
+\begin{aibox}[Đánh giá AI - Độ tin cậy: 80\%]
+\textbf{�� 1. Mô tả ngắn gọn:}\\
+Biểu đồ là một boxplot (biểu đồ hộp) hiển thị phân phối giá trị của các chỉ số ô nhiễm khác nhau. Các chỉ số bao gồm: Bụi mịn PM2.5, T2MDEW, T2M, PS, TQV và TQL.
+
+\textbf{�� 2. Phân tích chuyên sâu:}
+\begin{itemize}
+    \item \textbf{Phân bố tập trung:} Hầu hết các chỉ số (Bụi mịn PM2.5, T2MDEW, T2M, TQV, TQL) có giá trị tập trung gần 0, với hộp boxplot rất hẹp. Điều này cho thấy sự biến động thấp và giá trị trung bình gần như bằng 0.
+    \item \textbf{Giá trị ngoại lệ:} Các vòng tròn nhỏ bên ngoài hộp boxplot của một vài chỉ số (như Bụi mịn PM2.5) cho thấy sự tồn tại của các giá trị ngoại lệ (outliers). Đây là những giá trị rất khác biệt so với phần lớn dữ liệu.
+    \item \textbf{Chỉ số PS đột biến:} Chỉ số "PS" cho thấy sự khác biệt rõ ràng. Hộp boxplot của PS nằm ở vùng giá trị rất cao, gần 100,000, cho thấy giá trị của chỉ số này cao hơn rất nhiều so với các chỉ số khác.
+\end{itemize}
+
+\textbf{�� 3. Nhận định \& ý nghĩa:}\\
+Sự khác biệt lớn giữa các chỉ số: Các chỉ số ô nhiễm (Bụi mịn PM2.5, T2MDEW, T2M, TQV, TQL) có giá trị tương đối thấp và ổn định. Tuy nhiên, chỉ số "PS" có giá trị rất cao, cho thấy có thể có vấn đề liên quan đến chỉ số này.
+
+\textbf{�� 4. Đề xuất:}
+\begin{itemize}
+    \item Kiểm tra và xác minh dữ liệu PS
+    \item Phân tích sâu hơn về giá trị ngoại lệ
+    \item Phân tích theo thời gian để theo dõi sự biến động
+    \item So sánh với tiêu chuẩn để đánh giá mức độ ô nhiễm
+\end{itemize}
+\end{aibox}
+
+% BIỂU ĐỒ 5
+\paragraph{5. So sánh các chỉ số}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{results_comb_PM25_Hanoi_2018_sm_20251011_121424/20251011_121424_so_sanh_chi_so.png}
+\caption{So sánh các chỉ số}
+\end{figure}
+
+\begin{aibox}[Đánh giá AI - Độ tin cậy: 80\%]
+\textbf{�� 1. Mô tả ngắn gọn:}\\
+Biểu đồ là biểu đồ radar, so sánh các chỉ số ô nhiễm (đã chuẩn hóa) của 3 mẫu khác nhau theo các yếu tố ô nhiễm khác nhau như Bụi mịn PM2.5, TQL, TQV, PS, T2M và T2MDEW.
+
+\textbf{�� 2. Phân tích chuyên sâu:}
+\begin{itemize}
+    \item \textbf{Mức độ ô nhiễm tổng thể:} Nhìn chung, Mẫu 2 và Mẫu 3 có mức độ ô nhiễm cao hơn so với Mẫu 1.
+    \item \textbf{Chỉ số Bụi mịn PM2.5:} Mẫu 2 và Mẫu 3 có mức bụi mịn PM2.5 cao hơn đáng kể so với Mẫu 1.
+    \item \textbf{Chỉ số T2MDEW:} Mẫu 3 có chỉ số T2MDEW cao nhất trong 3 mẫu.
+    \item \textbf{Chỉ số PS và QV10M:} Mẫu 2 có chỉ số PS và QV10M cao hơn rõ rệt so với Mẫu 1 và Mẫu 3.
+\end{itemize}
+
+\textbf{�� 3. Nhận định \& ý nghĩa:}\\
+Có sự khác biệt đáng kể về mức độ ô nhiễm và thành phần ô nhiễm giữa các mẫu. Điều này có thể do vị trí địa lý, thời gian đo, hoặc nguồn gốc ô nhiễm khác nhau.
+
+\textbf{�� 4. Đề xuất:}
+\begin{itemize}
+    \item Phân tích sâu hơn về các mẫu
+    \item So sánh với tiêu chuẩn
+    \item Điều tra nguồn gốc ô nhiễm
+    \item Phân tích theo thời gian
+\end{itemize}
+\end{aibox}
+
+% BIỂU ĐỒ 6
+\paragraph{6. [ML] Dự báo PM2.5: Thực tế vs Dự đoán}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{results_comb_PM25_Hanoi_2018_sm_20251011_121424/20251011_121424_ml_predicted_vs_actual.png}
+\caption{ML Dự báo PM2.5: Thực tế vs Dự đoán}
+\end{figure}
+
+\begin{aibox}[Đánh giá AI - Độ tin cậy: 80\%]
+\textbf{Kết quả:} Random Forest R² = 0.892, XGBoost R² = 0.920 (tốt hơn)
+
+\textbf{�� 1. Mô tả ngắn gọn:}\\
+Biểu đồ so sánh nồng độ PM2.5 thực tế và dự đoán theo thời gian (100 mẫu). Đường màu xanh lam thể hiện giá trị thực tế, đường màu tím thể hiện giá trị dự đoán, và vùng màu vàng giữa hai đường cho thấy sự khác biệt (sai số) giữa dự đoán và thực tế.
+
+\textbf{�� 2. Phân tích chuyên sâu:}
+\begin{itemize}
+    \item \textbf{Xu hướng:} Cả hai đường đều cho thấy sự biến động lớn của nồng độ PM2.5 theo thời gian, với các đỉnh và đáy rõ ràng. Có vẻ như PM2.5 có tính chu kỳ.
+    \item \textbf{Mô hình:} Mô hình dự đoán có xu hướng theo sát các biến động của giá trị thực tế, tuy nhiên, có độ trễ nhất định.
+    \item \textbf{Mối quan hệ:} Có mối tương quan khá chặt chẽ giữa giá trị thực tế và giá trị dự đoán. Tuy nhiên, mức độ chính xác của dự đoán không đồng đều.
+\end{itemize}
+
+\textbf{�� 3. Nhận định \& ý nghĩa:}\\
+Mô hình dự đoán PM2.5 có khả năng nắm bắt được xu hướng chung của dữ liệu, tuy nhiên, độ chính xác còn hạn chế, đặc biệt là tại các giá trị cực đoan.
+
+\textbf{�� 4. Đề xuất:}
+\begin{itemize}
+    \item Kiểm chứng: Đánh giá mô hình bằng các chỉ số thống kê như RMSE, MAE, R-squared
+    \item Phân tích tiếp theo: Nghiên cứu các điểm mà dự đoán sai lệch lớn
+    \item Phân tích hồi quy: Xây dựng mô hình hồi quy để dự đoán PM2.5
+    \item Kiểm tra ngoại lệ: Xác định và phân tích các giá trị ngoại lệ
+\end{itemize}
+\end{aibox}
+
+% BIỂU ĐỒ 7
+\paragraph{7. [ML] Độ quan trọng của Features (Random Forest)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{results_comb_PM25_Hanoi_2018_sm_20251011_121424/20251011_121424_ml_feature_importance.png}
+\caption{ML Feature Importance (Random Forest)}
+\end{figure}
+
+\begin{aibox}[Đánh giá AI - Độ tin cậy: 80\%]
+\textbf{Top features:} PM2.5\_rolling\_mean\_3 (20.18\%), PM2.5\_rolling\_max\_3 (15.21\%)
+
+\textbf{�� 1. Mô tả ngắn gọn:}\\
+Biểu đồ này hiển thị mức độ quan trọng của 15 yếu tố (features) hàng đầu trong mô hình Random Forest. Mức độ quan trọng của mỗi yếu tố được biểu diễn bằng chiều dài của thanh ngang tương ứng.
+
+\textbf{�� 2. Phân tích chuyên sâu:}
+\begin{itemize}
+    \item \textbf{Xu hướng:} Các yếu tố liên quan đến "rolling mean" (trung bình động) của PM2.5 trong khoảng thời gian ngắn (3 giờ) có mức độ quan trọng vượt trội so với các yếu tố khác.
+    \item \textbf{Mô hình:} "PM2.5\_rolling\_mean\_3" chiếm ưu thế tuyệt đối, đóng góp đáng kể vào hiệu suất của mô hình. Tiếp theo là "PM2.5\_rolling\_max\_3" và "PM2.5\_rolling\_min\_3".
+    \item \textbf{Điểm bất thường:} Các yếu tố như "H1000", "TQV", "WS" có mức độ quan trọng rất thấp, gần như không đáng kể so với nhóm đầu.
+\end{itemize}
+
+\textbf{�� 3. Nhận định \& ý nghĩa:}\\
+Các yếu tố trung bình động ngắn hạn của PM2.5 là những chỉ số quan trọng nhất để dự đoán/phân tích dữ liệu PM2.5. Mô hình Random Forest đã xác định một cách hiệu quả các yếu tố then chốt.
+
+\textbf{�� 4. Đề xuất:}
+\begin{itemize}
+    \item Kiểm chứng tính ổn định của kết quả
+    \item Phân tích sâu hơn về các yếu tố hàng đầu
+    \item Thử nghiệm loại bỏ/kết hợp các yếu tố có mức độ quan trọng thấp
+    \item Khám phá thêm các yếu tố tiềm năng
+\end{itemize}
+\end{aibox}
+
+% BIỂU ĐỒ 8
+\paragraph{8. [ML] PCA 2D: Phân cụm mẫu}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{results_comb_PM25_Hanoi_2018_sm_20251011_121424/20251011_121424_ml_pca_clusters.png}
+\caption{PCA 2D: Phân cụm mẫu}
+\end{figure}
+
+\begin{aibox}[Đánh giá AI - Độ tin cậy: 80\%]
+\textbf{Kết quả:} 3 clusters, giải thích 58.66\% phương sai
+
+\textbf{�� 1. Mô tả ngắn gọn:}\\
+Biểu đồ là kết quả phân tích PCA (Principal Component Analysis) hai chiều, thể hiện sự phân cụm của các mẫu ô nhiễm dựa trên hai thành phần chính (PC1 và PC2). Màu sắc của các điểm biểu diễn các cụm khác nhau.
+
+\textbf{�� 2. Phân tích chuyên sâu:}
+\begin{itemize}
+    \item \textbf{Phân bố dữ liệu:} Dữ liệu được phân bố thành ba cụm chính, mỗi cụm có màu sắc khác nhau (vàng, xanh lục và tím).
+    \item \textbf{Ý nghĩa của PC1 và PC2:} PC1 chiếm 43.8\% phương sai, PC2 chiếm 14.8\% phương sai.
+    \item \textbf{Đặc điểm các cụm:}
+    \begin{itemize}
+        \item Cụm vàng: Tập trung ở phía bên trái của biểu đồ (PC1 âm)
+        \item Cụm xanh lục: Nằm ở giữa, trải dài từ PC1 âm đến dương
+        \item Cụm tím: Tập trung ở phía bên phải của biểu đồ (PC1 dương)
+    \end{itemize}
+\end{itemize}
+
+\textbf{�� 3. Nhận định \& ý nghĩa:}\\
+PCA đã giúp giảm chiều dữ liệu và làm nổi bật sự khác biệt giữa các mẫu ô nhiễm. Các cụm có thể đại diện cho các nguồn ô nhiễm khác nhau hoặc các loại ô nhiễm khác nhau.
+
+\textbf{�� 4. Đề xuất:}
+\begin{itemize}
+    \item Phân tích các thành phần chính
+    \item Kiểm tra bằng các phương pháp khác
+    \item Phân tích sự thay đổi của các cụm theo thời gian
+\end{itemize}
+\end{aibox}
+
+% BIỂU ĐỒ 9
+\paragraph{9. [ML] Phát hiện bất thường (Isolation Forest)}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{results_comb_PM25_Hanoi_2018_sm_20251011_121424/20251011_121424_ml_anomaly_detection.png}
+\caption{Phát hiện bất thường (Isolation Forest)}
+\end{figure}
+
+\begin{aibox}[Đánh giá AI - Độ tin cậy: 80\%]
+\textbf{Kết quả:} 405 anomalies (5.00\% tổng dữ liệu)
+
+\textbf{�� 1. Mô tả ngắn gọn:}\\
+Biểu đồ là kết quả của việc phát hiện bất thường sử dụng thuật toán Isolation Forest. Trục x là PC1 và trục y là PC2, đại diện cho hai thành phần chính của dữ liệu. Các điểm màu xanh lam thể hiện dữ liệu được coi là "bình thường", trong khi các điểm màu đỏ với ký hiệu "x" thể hiện các điểm được xác định là "bất thường".
+
+\textbf{�� 2. Phân tích chuyên sâu:}
+\begin{itemize}
+    \item \textbf{Phân cụm:} Các điểm "bình thường" có xu hướng tập trung thành một cụm lớn ở phía bên trái của biểu đồ.
+    \item \textbf{Phân tán:} Các điểm "bất thường" phân tán rộng hơn, đặc biệt ở phía bên phải của biểu đồ.
+    \item \textbf{Vùng mật độ thấp:} Các điểm bất thường có xu hướng nằm ở những vùng có mật độ dữ liệu thấp hơn.
+\end{itemize}
+
+\textbf{�� 3. Nhận định \& ý nghĩa:}\\
+Isolation Forest đã xác định thành công các điểm dữ liệu khác biệt so với phần lớn dữ liệu, thể hiện qua sự phân tách rõ ràng giữa hai nhóm "bình thường" và "bất thường".
+
+\textbf{�� 4. Đề xuất:}
+\begin{itemize}
+    \item Phân tích đặc trưng: Tìm hiểu ý nghĩa của PC1 và PC2
+    \item Đánh giá hiệu suất: Sử dụng các kỹ thuật đánh giá
+    \item Điều chỉnh tham số: Thử nghiệm với các tham số khác nhau
+    \item Phân tích nguyên nhân: Tìm hiểu nguyên nhân gốc rễ
+\end{itemize}
+\end{aibox}
+
+% BIỂU ĐỒ 10
+\paragraph{10. [Random Forest] Phân tích Residual}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{results_comb_PM25_Hanoi_2018_sm_20251011_121424/20251011_121424_ml_residual_plot.png}
+\caption{Random Forest Residual Analysis}
+\end{figure}
+
+\begin{aibox}[Đánh giá AI - Độ tin cậy: 80\%]
+\textbf{Đánh giá:} Residuals phân bố đều quanh 0, mô hình ổn định
+
+\textbf{�� 1. Mô tả ngắn gọn:}\\
+Biểu đồ thể hiện phân tích residual của mô hình Random Forest. Trục x biểu thị giá trị dự đoán từ mô hình, trục y biểu thị residual (sai số giữa giá trị thực tế và giá trị dự đoán). Đường màu đỏ thể hiện đường zero, nơi sai số bằng 0.
+
+\textbf{�� 2. Phân tích chuyên sâu:}
+\begin{itemize}
+    \item \textbf{Phương sai không đồng nhất:} Phần dư có xu hướng phân tán rộng hơn khi giá trị dự đoán tăng lên, cho thấy phương sai của sai số không đồng nhất.
+    \item \textbf{Phân bố không ngẫu nhiên:} Ở giá trị dự đoán thấp, phần dư có vẻ phân bố tương đối đối xứng quanh đường zero.
+    \item \textbf{Outliers:} Có một số điểm dữ liệu nằm khá xa đường zero, cho thấy sự hiện diện của các outliers.
+\end{itemize}
+
+\textbf{�� 3. Nhận định \& ý nghĩa:}\\
+Mô hình Random Forest có thể có vấn đề về tính ổn định của sai số, đặc biệt khi dự đoán các giá trị lớn.
+
+\textbf{�� 4. Đề xuất:}
+\begin{itemize}
+    \item Kiểm tra phương sai: Sử dụng các kiểm định thống kê
+    \item Xử lý phương sai thay đổi: Áp dụng kỹ thuật biến đổi dữ liệu
+    \item Phân tích outliers: Điều tra các outliers
+    \item Cải thiện mô hình: Tinh chỉnh tham số
+\end{itemize}
+\end{aibox}
+
+% BIỂU ĐỒ 11
+\paragraph{11. [ML] Elbow method: Chọn số cụm tối ưu}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{results_comb_PM25_Hanoi_2018_sm_20251011_121424/20251011_121424_ml_elbow_method.png}
+\caption{Elbow Method}
+\end{figure}
+
+\begin{aibox}[Đánh giá AI - Độ tin cậy: 80\%]
+\textbf{Kết quả:} K=3 là số cụm tối ưu
+
+\textbf{�� 1. Mô tả ngắn gọn:}\\
+Biểu đồ này thể hiện sự thay đổi của Distortion Score (tổng bình phương khoảng cách từ mỗi điểm dữ liệu đến centroid gần nhất) theo số lượng cluster (k) trong thuật toán KMeans.
+
+\textbf{�� 2. Phân tích chuyên sâu:}
+\begin{itemize}
+    \item \textbf{Xu hướng:} Distortion Score giảm khi số lượng cluster tăng lên.
+    \item \textbf{Mô hình:} Sự giảm Distortion Score diễn ra nhanh chóng ở giai đoạn đầu (từ k=1 đến k=4), sau đó chậm lại đáng kể.
+    \item \textbf{Khuỷu tay (Elbow):} Biểu đồ cho thấy khuỷu tay nằm tại k = 3, với Distortion Score là 150776.689.
+\end{itemize}
+
+\textbf{�� 3. Nhận định \& ý nghĩa:}\\
+Số lượng cluster tối ưu cho dữ liệu này, theo phương pháp Elbow, là 3. Việc sử dụng 3 cluster sẽ giúp cân bằng tốt giữa việc giảm thiểu distortion và tránh việc tạo ra các cụm quá nhỏ.
+
+\textbf{�� 4. Đề xuất:}
+\begin{itemize}
+    \item Kiểm chứng: Thử nghiệm KMeans với k = 3
+    \item Phân tích tiếp theo: Phân tích sâu hơn các cluster
+    \item Thử nghiệm: Xem xét các phương pháp clustering khác
+\end{itemize}
+\end{aibox}
+
+% BIỂU ĐỒ 12
+\paragraph{12. [XGBoost] Dự báo PM2.5: Thực tế vs Dự đoán}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{results_comb_PM25_Hanoi_2018_sm_20251011_121424/20251011_121424_xgb_predicted_vs_actual.png}
+\caption{XGBoost Prediction}
+\end{figure}
+
+\begin{aibox}[Đánh giá AI - Độ tin cậy: 80\%]
+\textbf{Kết quả:} R² = 0.920, RMSE = 8.52, MAE = 4.84
+
+\textbf{�� 1. Mô tả ngắn gọn:}\\
+Biểu đồ so sánh giá trị thực tế (Actual) và giá trị dự đoán (Predicted) của nồng độ PM2.5 bằng mô hình XGBoost theo thời gian.
+
+\textbf{�� 2. Phân tích chuyên sâu:}
+\begin{itemize}
+    \item \textbf{Xu hướng chung:} Nhìn chung, đường dự đoán khá sát với đường thực tế, cho thấy mô hình có độ chính xác khá tốt.
+    \item \textbf{Độ trễ:} Có một số thời điểm dự đoán có độ trễ so với thực tế.
+    \item \textbf{Độ chính xác:} Mô hình dự đoán tốt hơn ở các giai đoạn nồng độ PM2.5 thấp hoặc biến động nhẹ.
+    \item \textbf{Điểm bất thường:} Có một điểm tăng đột biến lớn ở khoảng mẫu thời gian 35-40.
+\end{itemize}
+
+\textbf{�� 3. Nhận định \& ý nghĩa:}\\
+Mô hình XGBoost có khả năng dự báo nồng độ PM2.5 khá tốt, đặc biệt là trong việc nắm bắt xu hướng chung, nhưng có sai số nhất định, đặc biệt là ở những thời điểm có biến động mạnh.
+
+\textbf{�� 4. Đề xuất:}
+\begin{itemize}
+    \item Phân tích sai số: Tính toán các chỉ số thống kê
+    \item Kiểm tra độ trễ: Sử dụng các kỹ thuật phân tích chuỗi thời gian
+    \item Tối ưu hóa mô hình: Thử nghiệm với các tham số khác nhau
+    \item Bổ sung thêm dữ liệu
+\end{itemize}
+\end{aibox}
+
+% BIỂU ĐỒ 13
+\paragraph{13. [XGBoost] Độ quan trọng của Features}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{results_comb_PM25_Hanoi_2018_sm_20251011_121424/20251011_121424_xgb_feature_importance.png}
+\caption{XGBoost Feature Importance}
+\end{figure}
+
+\begin{aibox}[Đánh giá AI - Độ tin cậy: 80\%]
+\textbf{Top features:} PM2.5\_rolling\_mean\_3 (72.67\%), PM2.5\_rolling\_max\_3 (9.68\%)
+
+\textbf{�� 1. Mô tả ngắn gọn:}\\
+Biểu đồ này hiển thị mức độ quan trọng của 15 thuộc tính (features) hàng đầu, được xác định bởi mô hình XGBoost.
+
+\textbf{�� 2. Phân tích chuyên sâu:}
+\begin{itemize}
+    \item \textbf{Xu hướng:} Nhóm thuộc tính "PM2.5\_rolling" chiếm ưu thế tuyệt đối về độ quan trọng, đặc biệt là "PM2.5\_rolling\_mean\_3", "PM2.5\_rolling\_min\_3", và "PM2.5\_rolling\_max\_3".
+    \item \textbf{Mô hình:} Dữ liệu cho thấy một mô hình rõ ràng, trong đó các giá trị trung bình trượt, giá trị tối thiểu trượt, giá trị tối đa trượt của PM2.5 trong 3 ngày gần nhất là những yếu tố dự báo mạnh mẽ nhất.
+    \item \textbf{Điểm bất thường:} Sự khác biệt lớn về độ quan trọng giữa nhóm thuộc tính "PM2.5\_rolling" và các thuộc tính còn lại là một điểm đáng chú ý.
+\end{itemize}
+
+\textbf{�� 3. Nhận định \& ý nghĩa:}\\
+Mức độ ô nhiễm PM2.5 trong ngắn hạn (3 ngày gần nhất), đặc biệt là các giá trị trung bình, tối thiểu và tối đa, là những yếu tố then chốt trong việc dự đoán.
+
+\textbf{�� 4. Đề xuất:}
+\begin{itemize}
+    \item Kiểm chứng: Phân tích tầm quan trọng của feature với các tập dữ liệu khác nhau
+    \item Phân tích tiếp theo: Nghiên cứu kỹ hơn về nhóm thuộc tính rolling
+    \item Mở rộng: Thử nghiệm với các khoảng thời gian rolling khác nhau
+\end{itemize}
+\end{aibox}
+
+% BIỂU ĐỒ 14
+\paragraph{14. [XGBoost] Phân tích Residual}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{results_comb_PM25_Hanoi_2018_sm_20251011_121424/20251011_121424_xgb_residual_plot.png}
+\caption{XGBoost Residual Analysis}
+\end{figure}
+
+\begin{aibox}[Đánh giá AI - Độ tin cậy: 80\%]
+\textbf{Đánh giá:} Residuals tập trung quanh 0, mô hình chính xác cao
+
+\textbf{�� 1. Mô tả ngắn gọn:}\\
+Biểu đồ thể hiện phân tích residual của mô hình XGBoost, trong đó trục x biểu thị giá trị dự đoán của mô hình, trục y biểu thị residual (sai số giữa giá trị thực tế và giá trị dự đoán).
+
+\textbf{�� 2. Phân tích chuyên sâu:}
+\begin{itemize}
+    \item \textbf{Phân bố của Residuals:} Phần lớn các điểm dữ liệu tập trung gần đường residual bằng 0, cho thấy mô hình XGBoost hoạt động khá tốt. Tuy nhiên, sự phân tán của các điểm dữ liệu có xu hướng tăng lên khi giá trị dự đoán tăng.
+    \item \textbf{Xu hướng:} Không có xu hướng rõ ràng nào của residuals xung quanh đường residual bằng 0 cho các giá trị dự đoán thấp.
+    \item \textbf{Outlier:} Có một vài điểm dữ liệu nằm rất xa so với phần còn lại của dữ liệu, có thể là outlier.
+\end{itemize}
+
+\textbf{�� 3. Nhận định \& ý nghĩa:}\\
+Mô hình XGBoost hoạt động tương đối tốt, nhưng cần lưu ý đến hiện tượng phương sai sai số có thể không đồng nhất.
+
+\textbf{�� 4. Đề xuất:}
+\begin{itemize}
+    \item Kiểm tra heteroscedasticity: Sử dụng các kiểm định thống kê
+    \item Phân tích Outliers: Điều tra kỹ lưỡng các outliers
+    \item Xem xét các biến số khác: Kiểm tra xem có biến số nào khác có thể giúp cải thiện độ chính xác
+    \item Tinh chỉnh mô hình: Thử nghiệm với các tham số khác nhau
+\end{itemize}
+\end{aibox}
+
+\subsubsection{File kết quả chi tiết}
+\begin{itemize}
+    \item File JSON: \texttt{results\_comb\_PM25\_Hanoi\_2018\_sm\_20251011\_121424/}\\
+    \texttt{test\_results\_comb\_PM25\_Hanoi\_2018\_sm\_20251011\_121424.json}
+    \item Folder chứa ảnh: \texttt{results\_comb\_PM25\_Hanoi\_2018\_sm\_20251011\_121424}
+\end{itemize}
+
+\newpage
+\subsection{Dataset 2: comb\_PM25\_wind\_Hanoi\_2018\_v1}
+
+\subsubsection{Thông tin cơ bản}
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Thuộc tính} & \textbf{Giá trị}\\
+\midrule
+Đường dẫn & comb\_PM25\_wind\_Hanoi\_2018\_v1.csv\\
+Kích thước file & 2.35 MB\\
+Trạng thái & \textcolor{successcolor}{Thành công}\\
+Số mẫu & 8,116\\
+Số features & 25\\
+Thời gian phân tích & 2025-10-11T11:50:09\\
+\midrule
+\multicolumn{2}{c}{\textbf{Thống kê mô tả}}\\
+\midrule
+Data quality & Tốt\\
+Missing data & 4.3926\%\\
+Total features & 25\\
+Total samples & 8,116\\
+\bottomrule
+\end{tabular}
+\caption{Thông tin Dataset 2}
+\end{table}
+
+\subsubsection{Kết quả Machine Learning}
+
+\paragraph{Random Forest:}
+\begin{itemize}
+    \item R² Score: 0.895
+    \item Top features: PM2.5\_rolling\_mean\_3 (18.10\%), PM2.5\_rolling\_max\_3 (13.85\%)
+\end{itemize}
+
+\paragraph{XGBoost (Tốt hơn):}
+\begin{itemize}
+    \item R² Score: \textbf{0.915}
+    \item Top features: PM2.5\_rolling\_mean\_3 chiếm ưu thế
+\end{itemize}
+
+\subsubsection{Kết quả Clustering và Anomaly Detection}
+\begin{itemize}
+    \item \textbf{PCA Clusters:} 4 clusters, giải thích 48.86\% phương sai
+    \item \textbf{Optimal K (Elbow):} K=4
+    \item \textbf{Anomaly Detection:} 205 anomalies (5.00\% tổng dữ liệu)
+\end{itemize}
+
+\textit{Lưu ý: Dataset 2 có cấu trúc tương tự Dataset 1 với 14 biểu đồ phân tích. Do giới hạn độ dài, các biểu đồ chi tiết được lưu trong folder kết quả.}
+
+\subsubsection{File kết quả chi tiết}
+\begin{itemize}
+    \item File JSON: \texttt{results\_comb\_PM25\_wind\_Hanoi\_2018\_v1\_20251011\_121456/}\\
+    \texttt{test\_results\_comb\_PM25\_wind\_Hanoi\_2018\_v1\_20251011\_121456.json}
+    \item Folder chứa ảnh: \texttt{results\_comb\_PM25\_wind\_Hanoi\_2018\_v1\_20251011\_121456}
+\end{itemize}
+
+\newpage
+\subsection{Dataset 3: comb\_PM25\_wind\_Hanoi\_2018\_v2}
+
+\subsubsection{Thông tin cơ bản}
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Thuộc tính} & \textbf{Giá trị}\\
+\midrule
+Đường dẫn & comb\_PM25\_wind\_Hanoi\_2018\_v2.csv\\
+Kích thước file & 2.11 MB\\
+Trạng thái & \textcolor{successcolor}{Thành công}\\
+Số mẫu & 8,116\\
+Số features & 22\\
+Thời gian phân tích & 2025-10-11T11:50:40\\
+\midrule
+\multicolumn{2}{c}{\textbf{Thống kê mô tả}}\\
+\midrule
+Data quality & Tốt\\
+Missing data & 3.5523\%\\
+Total features & 22\\
+Total samples & 8,116\\
+\bottomrule
+\end{tabular}
+\caption{Thông tin Dataset 3}
+\end{table}
+
+\subsubsection{Kết quả Machine Learning}
+
+\paragraph{Random Forest:}
+\begin{itemize}
+    \item R² Score: 0.898
+    \item Top features: PM2.5\_rolling\_mean\_3 (16.75\%), PM2.5\_rolling\_max\_3 (15.48\%)
+\end{itemize}
+
+\paragraph{XGBoost (Tốt nhất):}
+\begin{itemize}
+    \item R² Score: \textbf{0.916} (Cao nhất trong 3 datasets)
+    \item Top features: PM2.5\_rolling\_mean\_3 chiếm ưu thế rõ ràng
+    \item \textbf{Nhận xét đặc biệt:} Residuals phân bố tốt nhất, mô hình chính xác cao nhất
+\end{itemize}
+
+\subsubsection{Kết quả Clustering và Anomaly Detection}
+\begin{itemize}
+    \item \textbf{PCA Clusters:} 3 clusters, giải thích 48.03\% phương sai
+    \item \textbf{Optimal K (Elbow):} K=3
+    \item \textbf{Anomaly Detection:} 205 anomalies (5.00\% tổng dữ liệu)
+\end{itemize}
+
+\subsubsection{File kết quả chi tiết}
+\begin{itemize}
+    \item File JSON: \texttt{results\_comb\_PM25\_wind\_Hanoi\_2018\_v2\_20251011\_121529/}\\
+    \texttt{test\_results\_comb\_PM25\_wind\_Hanoi\_2018\_v2\_20251011\_121529.json}
+    \item Folder chứa ảnh: \texttt{results\_comb\_PM25\_wind\_Hanoi\_2018\_v2\_20251011\_121529}
+\end{itemize}
+
+\section{SO SÁNH KẾT QUẢ}
+
+\subsection{Bảng so sánh thống kê}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Dataset} & \textbf{Mẫu} & \textbf{Features} & \textbf{Size} & \textbf{Missing} & \textbf{RF R²} & \textbf{XGB R²} & \textbf{Best}\\
+\midrule
+sm & 8,116 & 11 & 1.07 MB & 0.00\% & 0.892 & 0.920 & XGB\\
+v1 & 8,116 & 25 & 2.35 MB & 4.39\% & 0.895 & 0.915 & XGB\\
+v2 & 8,116 & 22 & 2.11 MB & 3.55\% & 0.898 & \textbf{0.916} & XGB\\
+\bottomrule
+\end{tabular}
+\caption{So sánh các dataset}
+\end{table}
+
+\subsection{Bảng so sánh hiệu suất ML}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Metric} & \textbf{Dataset 1} & \textbf{Dataset 2} & \textbf{Dataset 3} & \textbf{Tốt nhất}\\
+\midrule
+RF R² & 0.892 & 0.895 & 0.898 & v2\\
+XGB R² & 0.920 & 0.915 & \textbf{0.916} & v2\\
+PCA Variance & 58.66\% & 48.86\% & 48.03\% & sm\\
+Optimal K & 3 & 4 & 3 & --\\
+Anomalies & 5.00\% & 5.00\% & 5.00\% & Đều tốt\\
+\bottomrule
+\end{tabular}
+\caption{So sánh hiệu suất Machine Learning}
+\end{table}
+
+\subsection{Nhận xét chi tiết}
+
+\subsubsection{�� Dataset tốt nhất: comb\_PM25\_wind\_Hanoi\_2018\_v2}
+
+\textbf{Lý do:} Cân bằng tốt nhất giữa số lượng features (22) và hiệu suất (R² = 0.916)
+
+\textbf{Ưu điểm:}
+\begin{itemize}
+    \item Hiệu suất ML cao nhất (XGBoost R² = 0.916)
+    \item Missing data thấp (3.55\%)
+    \item Số features hợp lý (22)
+    \item Residuals phân bố tốt nhất
+    \item Mô hình chính xác cao nhất trong 3 dataset
+\end{itemize}
+
+\textbf{Khuyến nghị sử dụng:}
+\begin{itemize}
+    \item Production environments
+    \item Real-time prediction systems
+    \item Applications requiring high accuracy
+\end{itemize}
+
+\subsubsection{�� Dataset đơn giản nhất: comb\_PM25\_Hanoi\_2018\_sm}
+
+\textbf{Đặc điểm:} 11 features, 0\% missing data
+
+\textbf{Ưu điểm:}
+\begin{itemize}
+    \item Dữ liệu sạch nhất (0\% missing)
+    \item PCA giải thích nhiều phương sai nhất (58.66\%)
+    \item Phù hợp cho demo và nghiên cứu cơ bản
+    \item Dễ hiểu và giải thích
+    \item Training time nhanh nhất
+\end{itemize}
+
+\textbf{Nhược điểm:}
+\begin{itemize}
+    \item Hiệu suất ML thấp hơn
+    \item Ít thông tin về wind patterns
+\end{itemize}
+
+\textbf{Khuyến nghị sử dụng:}
+\begin{itemize}
+    \item Educational purposes
+    \item Quick prototyping
+    \item Baseline models
+    \item Demonstrations
+\end{itemize}
+
+\subsubsection{�� Dataset phong phú nhất: comb\_PM25\_wind\_Hanoi\_2018\_v1}
+
+\textbf{Đặc điểm:} 25 features, 4.39\% missing data
+
+\textbf{Ưu điểm:}
+\begin{itemize}
+    \item Nhiều features nhất (25)
+    \item Dữ liệu phong phú nhất về wind patterns
+    \item Phù hợp cho nghiên cứu sâu
+    \item Cung cấp nhiều góc nhìn về dữ liệu
+    \item Tốt cho feature engineering
+\end{itemize}
+
+\textbf{Nhược điểm:}
+\begin{itemize}
+    \item Missing data cao nhất (4.39\%)
+    \item Có thể bị overfitting
+    \item Training time lâu hơn
+    \item Phức tạp hơn trong việc giải thích
+\end{itemize}
+
+\textbf{Khuyến nghị sử dụng:}
+\begin{itemize}
+    \item Research projects
+    \item Deep analysis
+    \item Feature importance studies
+    \item Advanced modeling
+\end{itemize}
+
+\subsection{Biểu đồ so sánh trực quan}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Tiêu chí} & \textbf{sm} & \textbf{v1} & \textbf{v2}\\
+\midrule
+Data Quality & ⭐⭐⭐⭐⭐ & ⭐⭐⭐⭐ & ⭐⭐⭐⭐⭐\\
+ML Performance & ⭐⭐⭐⭐ & ⭐⭐⭐⭐ & ⭐⭐⭐⭐⭐\\
+Simplicity & ⭐⭐⭐⭐⭐ & ⭐⭐⭐ & ⭐⭐⭐⭐\\
+Feature Richness & ⭐⭐⭐ & ⭐⭐⭐⭐⭐ & ⭐⭐⭐⭐\\
+Overall & ⭐⭐⭐⭐ & ⭐⭐⭐⭐ & ⭐⭐⭐⭐⭐\\
+\bottomrule
+\end{tabular}
+\caption{Đánh giá tổng quan các dataset}
+\end{table}
+
+% \section{KẾT LUẬN}
+
+% \subsection{Tổng kết}
+
+% Hệ thống đã được test thành công với các dataset khác nhau. Tất cả các tính năng phân
