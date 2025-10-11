@@ -35,7 +35,7 @@ Báo cáo này trình bày kết quả test hệ thống phân tích dữ liệu
 **1. Phân phối các chỉ số ô nhiễm**
 - File: `20251011_121424_phan_phoi_chi_so.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Tuyệt vời, hãy cùng phân tích bộ biểu đồ này.
 
 🧩 **1. Mô tả ngắn gọn:**
@@ -67,7 +67,7 @@ Hy vọng phân tích này hữu ích cho bạn. Hãy cho tôi biết nếu bạ
 **2. Ma trận tương quan**
 - File: `20251011_121424_ma_tran_tuong_quan.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Tuyệt vời! Với kinh nghiệm của mình, tôi sẽ phân tích ma trận tương quan này một cách chi tiết:
 
 🧩 **1. Mô tả ngắn gọn:**
@@ -105,7 +105,7 @@ Hy vọng phân tích này hữu ích! Nếu bạn có bất kỳ câu hỏi nà
 **3. Xu hướng thời gian**
 - File: `20251011_121424_xu_huong_thoi_gian.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích biểu đồ theo yêu cầu:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -131,7 +131,7 @@ Biểu đồ đường này thể hiện xu hướng thay đổi của năm ch�
 **4. Phân tích giá trị bất thường**
 - File: `20251011_121424_gia_tri_bat_thuong.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Tuyệt vời, tôi sẽ phân tích biểu đồ này theo yêu cầu của bạn.
 
 🧩 **1. Mô tả ngắn gọn:**
@@ -158,7 +158,7 @@ Hy vọng phân tích này hữu ích cho bạn!
 **5. So sánh các chỉ số**
 - File: `20251011_121424_so_sanh_chi_so.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Chào bạn, tôi là nhà khoa học dữ liệu với hơn 10 năm kinh nghiệm. Dưới đây là phân tích của tôi về biểu đồ bạn cung cấp:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -188,7 +188,7 @@ Biểu đồ là một biểu đồ radar (spider chart) so sánh các chỉ s�
 **6. [ML] Dự báo PM2.5: Thực tế vs Dự đoán**
 - File: `20251011_121424_ml_predicted_vs_actual.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích của tôi về biểu đồ:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -218,7 +218,7 @@ Biểu đồ so sánh nồng độ PM2.5 thực tế và dự đoán theo thời
 **7. [ML] Độ quan trọng của Features (Random Forest)**
 - File: `20251011_121424_ml_feature_importance.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích chi tiết về biểu đồ "Top 15 Features quan trọng nhất (Random Forest)":
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -246,7 +246,7 @@ Biểu đồ này hiển thị mức độ quan trọng của 15 yếu tố (fea
 **8. [ML] PCA 2D: Phân cụm mẫu**
 - File: `20251011_121424_ml_pca_clusters.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích biểu đồ về phân cụm các mẫu ô nhiễm bằng PCA:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -277,7 +277,7 @@ Biểu đồ là kết quả phân tích PCA (Principal Component Analysis) hai 
 **9. [ML] Phát hiện bất thường (Isolation Forest)**
 - File: `20251011_121424_ml_anomaly_detection.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích chi tiết về biểu đồ "Phát hiện bất thường (Isolation Forest)":
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -306,7 +306,7 @@ Biểu đồ là một scatter plot thể hiện kết quả phát hiện bất 
 **10. [Random Forest] Phân tích Residual**
 - File: `20251011_121424_ml_residual_plot.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích biểu đồ residual (phần dư) từ mô hình Random Forest:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -333,7 +333,7 @@ Biểu đồ hiển thị phân tích residual của mô hình Random Forest. Tr
 **11. [ML] Elbow method: Chọn số cụm tối ưu**
 - File: `20251011_121424_ml_elbow_method.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích biểu đồ "Distortion Score Elbow for KMeans Clustering":
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -359,7 +359,7 @@ Biểu đồ này thể hiện sự thay đổi của distortion score (một th
 **12. [XGBoost] Dự báo PM2.5: Thực tế vs Dự đoán**
 - File: `20251011_121424_xgb_predicted_vs_actual.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Chắc chắn rồi, tôi sẽ phân tích biểu đồ này giúp bạn.
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -394,7 +394,7 @@ Hy vọng những phân tích này hữu ích cho bạn!
 **13. [XGBoost] Độ quan trọng của Features**
 - File: `20251011_121424_xgb_feature_importance.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích chi tiết về biểu đồ "Top 15 Features quan trọng nhất (XGBoost)":
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -429,7 +429,7 @@ Biểu đồ hiển thị mức độ quan trọng của 15 đặc trưng (featu
 **14. [XGBoost] Phân tích Residual**
 - File: `20251011_121424_xgb_residual_plot.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích chi tiết về biểu đồ residual của mô hình XGBoost.
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -485,7 +485,7 @@ Folder chứa ảnh: `results_comb_PM25_Hanoi_2018_sm_20251011_121424`
 **1. Phân phối các chỉ số ô nhiễm**
 - File: `20251011_121456_phan_phoi_chi_so.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Tuyệt vời! Dưới đây là phân tích chi tiết về biểu đồ bạn cung cấp, được trình bày một cách dễ hiểu:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -522,7 +522,7 @@ Hy vọng phân tích này hữu ích cho bạn! Nếu bạn có bất kỳ câu
 **2. Ma trận tương quan**
 - File: `20251011_121456_ma_tran_tuong_quan.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Tuyệt vời, hãy cùng nhau phân tích ma trận tương quan này nhé.
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -550,7 +550,7 @@ Biểu đồ là một ma trận tương quan, thể hiện mối tương quan t
 **3. Xu hướng thời gian**
 - File: `20251011_121456_xu_huong_thoi_gian.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích biểu đồ về xu hướng thay đổi các chỉ số ô nhiễm theo thời gian:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -576,7 +576,7 @@ Biểu đồ đường này thể hiện sự biến động của 5 chỉ số 
 **4. Phân tích giá trị bất thường**
 - File: `20251011_121456_gia_tri_bat_thuong.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Chắc chắn rồi, tôi sẽ phân tích biểu đồ này cho bạn.
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -602,7 +602,7 @@ Biểu đồ là một biểu đồ hộp (boxplot) hiển thị sự phân bố
 **5. So sánh các chỉ số**
 - File: `20251011_121456_so_sanh_chi_so.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Chắc chắn rồi, hãy cùng phân tích biểu đồ này.
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -631,7 +631,7 @@ Biểu đồ là biểu đồ radar, so sánh các chỉ số ô nhiễm (đã c
 **6. [ML] Dự báo PM2.5: Thực tế vs Dự đoán**
 - File: `20251011_121456_ml_predicted_vs_actual.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích biểu đồ về dự báo PM2.5:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -660,7 +660,7 @@ Biểu đồ so sánh giá trị thực tế (Actual) và giá trị dự đoán
 **7. [ML] Độ quan trọng của Features (Random Forest)**
 - File: `20251011_121456_ml_feature_importance.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích biểu đồ về mức độ quan trọng của các features dựa trên mô hình Random Forest, như bạn yêu cầu:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -691,7 +691,7 @@ Biểu đồ hiển thị mức độ quan trọng của 15 features hàng đầ
 **8. [ML] PCA 2D: Phân cụm mẫu**
 - File: `20251011_121456_ml_pca_clusters.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích biểu đồ PCA 2D về phân cụm các mẫu ô nhiễm:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -719,7 +719,7 @@ Biểu đồ là kết quả của phân tích thành phần chính (PCA) để 
 **9. [ML] Phát hiện bất thường (Isolation Forest)**
 - File: `20251011_121456_ml_anomaly_detection.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Tuyệt vời, hãy cùng phân tích biểu đồ này.
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -748,7 +748,7 @@ Biểu đồ là kết quả của việc phát hiện bất thường (anomaly 
 **10. [Random Forest] Phân tích Residual**
 - File: `20251011_121456_ml_residual_plot.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Chắc chắn rồi, tôi sẽ giúp bạn phân tích biểu đồ này.
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -780,7 +780,7 @@ Hy vọng phân tích này hữu ích cho bạn!
 **11. [ML] Elbow method: Chọn số cụm tối ưu**
 - File: `20251011_121456_ml_elbow_method.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích chi tiết về biểu đồ Elbow method cho thuật toán KMeans Clustering:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -807,7 +807,7 @@ Biểu đồ thể hiện sự thay đổi của Distortion Score (tổng bình 
 **12. [XGBoost] Dự báo PM2.5: Thực tế vs Dự đoán**
 - File: `20251011_121456_xgb_predicted_vs_actual.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Tuyệt vời! Dưới đây là phân tích chi tiết về biểu đồ bạn cung cấp:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -839,7 +839,7 @@ Biểu đồ so sánh giá trị PM2.5 thực tế với giá trị PM2.5 đư�
 **13. [XGBoost] Độ quan trọng của Features**
 - File: `20251011_121456_xgb_feature_importance.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích về biểu đồ "Top 15 Features quan trọng nhất (XGBoost)":
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -871,7 +871,7 @@ Biểu đồ thể hiện mức độ quan trọng của 15 thuộc tính (featu
 **14. [XGBoost] Phân tích Residual**
 - File: `20251011_121456_xgb_residual_plot.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Tuyệt vời, hãy cùng phân tích biểu đồ residual này.
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -925,7 +925,7 @@ Folder chứa ảnh: `results_comb_PM25_wind_Hanoi_2018_v1_20251011_121456`
 **1. Phân phối các chỉ số ô nhiễm**
 - File: `20251011_121529_phan_phoi_chi_so.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích về các biểu đồ bạn cung cấp:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -954,7 +954,7 @@ Dưới đây là phân tích về các biểu đồ bạn cung cấp:
 **2. Ma trận tương quan**
 - File: `20251011_121529_ma_tran_tuong_quan.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Chào bạn, tôi là nhà khoa học dữ liệu với hơn 10 năm kinh nghiệm. Dưới đây là phân tích của tôi về biểu đồ ma trận tương quan các chỉ số ô nhiễm:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -990,7 +990,7 @@ Hy vọng phân tích này hữu ích cho bạn!
 **3. Xu hướng thời gian**
 - File: `20251011_121529_xu_huong_thoi_gian.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích chi tiết về biểu đồ bạn cung cấp:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -1018,7 +1018,7 @@ Biểu đồ đường này thể hiện xu hướng thay đổi của các ch�
 **4. Phân tích giá trị bất thường**
 - File: `20251011_121529_gia_tri_bat_thuong.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Chào bạn, với kinh nghiệm 10 năm trong lĩnh vực khoa học dữ liệu, tôi xin được phân tích biểu đồ này như sau:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -1047,7 +1047,7 @@ Hy vọng phân tích này hữu ích cho bạn!
 **5. So sánh các chỉ số**
 - File: `20251011_121529_so_sanh_chi_so.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích chi tiết về biểu đồ radar cung cấp:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -1074,7 +1074,7 @@ Biểu đồ radar này so sánh các chỉ số ô nhiễm (đã chuẩn hóa) 
 **6. [ML] Dự báo PM2.5: Thực tế vs Dự đoán**
 - File: `20251011_121529_ml_predicted_vs_actual.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích biểu đồ so sánh giá trị thực tế và dự đoán nồng độ PM2.5:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -1104,7 +1104,7 @@ Biểu đồ đường này so sánh nồng độ PM2.5 thực tế (đường m
 **7. [ML] Độ quan trọng của Features (Random Forest)**
 - File: `20251011_121529_ml_feature_importance.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Chắc chắn rồi, tôi sẽ phân tích biểu đồ này.
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -1130,7 +1130,7 @@ Biểu đồ thể hiện mức độ quan trọng của 15 đặc trưng (featu
 **8. [ML] PCA 2D: Phân cụm mẫu**
 - File: `20251011_121529_ml_pca_clusters.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích chi tiết về biểu đồ PCA 2D thể hiện phân cụm các mẫu ô nhiễm:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -1163,7 +1163,7 @@ Biểu đồ là kết quả của phân tích PCA (Principal Component Analysis
 **9. [ML] Phát hiện bất thường (Isolation Forest)**
 - File: `20251011_121529_ml_anomaly_detection.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích của tôi về biểu đồ:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -1190,7 +1190,7 @@ Kết quả cho thấy thuật toán Isolation Forest đã xác định được
 **10. [Random Forest] Phân tích Residual**
 - File: `20251011_121529_ml_residual_plot.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích biểu đồ residual của mô hình Random Forest:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -1220,7 +1220,7 @@ Biểu đồ thể hiện phân tích residual của mô hình Random Forest, tr
 **11. [ML] Elbow method: Chọn số cụm tối ưu**
 - File: `20251011_121529_ml_elbow_method.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích của biểu đồ dựa trên các bước yêu cầu:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -1248,7 +1248,7 @@ Biểu đồ thể hiện phương pháp Elbow để xác định số lượng 
 **12. [XGBoost] Dự báo PM2.5: Thực tế vs Dự đoán**
 - File: `20251011_121529_xgb_predicted_vs_actual.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích chi tiết về biểu đồ bạn cung cấp:
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -1280,7 +1280,7 @@ Hy vọng phân tích này hữu ích cho bạn!
 **13. [XGBoost] Độ quan trọng của Features**
 - File: `20251011_121529_xgb_feature_importance.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Dưới đây là phân tích chi tiết về biểu đồ "Top 15 Features quan trọng nhất (XGBoost)":
 
 🧩 **1. Mô tả ngắn gọn::**
@@ -1315,7 +1315,7 @@ Biểu đồ thể hiện mức độ quan trọng của 15 thuộc tính (featu
 **14. [XGBoost] Phân tích Residual**
 - File: `20251011_121529_xgb_residual_plot.png`
 
-**Đánh giá của Gemini AI:**
+**Đánh giá :**
 Chào bạn, với kinh nghiệm 10 năm trong lĩnh vực khoa học dữ liệu, tôi xin phân tích biểu đồ residual (phần dư) cho mô hình XGBoost như sau:
 
 🧩 **1. Mô tả ngắn gọn::**
